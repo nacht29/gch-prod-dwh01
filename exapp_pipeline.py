@@ -37,7 +37,7 @@ SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 SCOPES = ['https://www.googleapis.com/auth/drive']
 PARENT_FOLDER_ID = '1GJ2pAchszF5MWFIV7vNoMyv76xa3Wvbm' # Possales_RL > Hyper
 
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 # 1000000
 SLICE_BY_ROWS = 100
