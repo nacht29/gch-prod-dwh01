@@ -104,14 +104,50 @@ def load_bucket():
 		blob.upload_from_filename(file)
 
 def load_gdrive():
-	pass
+	# authenticate
+	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
+	service = build('drive', 'v3', credentials=creds)
+
+	# get all existing files in Drive
+	query = f"'{PARENT_FOLDER_ID}' in parents and trashed=false"
+	response = service.files().list(q=query, fields='files(id, name)').execute()
+	files_in_drive = response.get('files_in_drive') # response.get('files', []) -> returns empty list instead of None
+
+	# get name of all files to be loaded
+	load_files = file_type_in_dir(None, '.csv')
+
+	# check for duplicates
+	for load_file in load_files:
+		# get list of dup files
+		query = f"'{PARENT_FOLDER_ID}' in parents and name='{load_file}' and trashed=false"
+		response = service.files().list(q=query, fields='files(id, name)').execute()
+		dup_files = response.get('files')
+
+		# delete duplicates if any
+		if dup_files:
+			for dup_file in dup_files:
+				service.files().delete(fileId=dup_file['id']).execute()
 
 def remove_outfiles():
 	outfiles = file_type_in_dir(None, '.csv')
-
 	for outfile in outfiles:
 		os.remove(outfile)
 
 query_data()
 load_bucket()
 remove_outfiles()
+
+with DAG(
+	'bucket_pipeline',
+	start_date=START_DATE,
+	schedule="00 07 * * *",
+	catchup=True
+) as dag:
+	
+	task_query_data = PythonOperator(
+		task_id='query_data',
+		python_callable=query_data,
+		provide_context=True
+	)
+
+	# task_query_data >> task_load_bucket
