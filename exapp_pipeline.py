@@ -72,11 +72,13 @@ def gen_date() -> tuple:
 def query_data():
 	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
 
+	# run each script
 	for script in sql_scripts:
 		with open(f'{SQL_SCRIPTS_PATH}{script}', 'r') as cur_script:
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
+			# slice the results of eac script
 			# for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
 			for cur_row in range(0, 1000, SLICE_BY_ROWS):
 				# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
