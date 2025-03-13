@@ -59,7 +59,7 @@ def file_type_in_dir(file_dir:str, file_type:str):
 		return [file for file in files_in_dir if file.endswith(file_type)]
 
 def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
-	file_name = f'{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}'
+	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
 	return file_name
 
 # return (mm,yyyy)

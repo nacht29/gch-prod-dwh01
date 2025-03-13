@@ -1,4 +1,3 @@
-# SDK
 gcloud auth login
 gcloud auth list
 gcloud config set project gch-prod-dwh01
