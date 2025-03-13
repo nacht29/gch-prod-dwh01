@@ -111,7 +111,6 @@ def load_gdrive():
 	# get all existing files in Drive
 	query = f"'{PARENT_FOLDER_ID}' in parents and trashed=false"
 	response = service.files().list(q=query, fields='files(id, name)').execute()
-	files_in_drive = response.get('files_in_drive') # response.get('files', []) -> returns empty list instead of None
 
 	# get name of all files to be loaded
 	load_files = file_type_in_dir(None, '.csv')
@@ -133,9 +132,9 @@ def remove_outfiles():
 	for outfile in outfiles:
 		os.remove(outfile)
 
-query_data()
-load_bucket()
-remove_outfiles()
+# query_data()
+# load_bucket()
+# remove_outfiles()
 
 with DAG(
 	'bucket_pipeline',
@@ -147,7 +146,17 @@ with DAG(
 	task_query_data = PythonOperator(
 		task_id='query_data',
 		python_callable=query_data,
-		provide_context=True
 	)
 
-	# task_query_data >> task_load_bucket
+	task_load_bucket = PythonOperator(
+		task_id='load_bucket',
+		python_callable=load_bucket
+	)
+
+	task_remove_outfiles = PythonOperator(
+		task_id='remove_outfiles',
+		python_callable=remove_outfiles
+	)
+	
+	task_query_data >> [task_load_bucket]
+	task_load_bucket >> task_remove_outfiles
