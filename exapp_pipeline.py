@@ -137,7 +137,7 @@ def remove_outfiles():
 # remove_outfiles()
 
 with DAG(
-	'bucket_pipeline',
+	'exapp_pipeline',
 	start_date=START_DATE,
 	schedule="00 07 * * *",
 	catchup=True
