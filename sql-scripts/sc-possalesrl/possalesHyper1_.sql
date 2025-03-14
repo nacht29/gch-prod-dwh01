@@ -1,4 +1,4 @@
-SELECT Bizdate, Location, 
+SELECT Bizdate, Location,
 CASE WHEN dept like '1%' THEN '1 - GROCERY'
 WHEN dept like '2%' THEN '2 - FRESH'
 WHEN dept like '3%' THEN '3 - PERISHABLE'

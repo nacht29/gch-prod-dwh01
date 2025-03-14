@@ -70,6 +70,6 @@ tmux kill-session -t airflow_sched 2>/dev/null || true
 tmux new-session -d -s airflow_web "airflow webserver -p 8080"
 tmux new-session -d -s airflow_sched "airflow scheduler"
 
-echo "Setup complete!"
+echo "Setup complete"
 echo "Airflow webserver running on port 8080"
 echo "Access Airflow at http://$(curl -s ifconfig.me):8080"
