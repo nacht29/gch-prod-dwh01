@@ -203,7 +203,7 @@ except Exception:
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="00 07 * * *",
+	schedule="05 00 * * *",
 	catchup=True
 ) as dag:
 	
