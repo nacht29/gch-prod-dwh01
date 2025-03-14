@@ -19,8 +19,8 @@ from google.api_core.exceptions import Forbidden, NotFound
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
@@ -28,8 +28,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 # POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain 
 
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 SLICE_BY_ROWS = 1000000 - 1
 
