@@ -19,16 +19,17 @@ from google.api_core.exceptions import Forbidden, NotFound
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
 SCOPES = ['https://www.googleapis.com/auth/drive']
+# change this to GCH Data Warehouse ID
 POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF'
 
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 # 1000000
 SLICE_BY_ROWS = 100
