@@ -31,8 +31,7 @@ POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF'
 # SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
 SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
-# 1000000
-SLICE_BY_ROWS = 100
+SLICE_BY_ROWS = 1000000 - 1
 
 # set up BQ credentials to query data
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
@@ -71,8 +70,7 @@ def query_data():
 			results_df = bq_client.query(query).to_dataframe()
 
 			# slice the results of eac script
-			# for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
-			for cur_row in range(0, 1000, SLICE_BY_ROWS):
+			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
 				# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
 				file_ver = cur_row // SLICE_BY_ROWS + 1
 				# get subset of full query result (sliced by rows)
