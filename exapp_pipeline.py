@@ -16,17 +16,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from google.api_core.exceptions import Forbidden, NotFound
 
-# Drive folders
-# id_number: (name, folder_id)
-# FINAL_FOLDERS = {
-# 	1: ('Grocery', '1H87f3BjLv2ddua7Xwiry1t4tXpx6MIt1'),
-# 	2: ('Fresh', '1H87f3BjLv2ddua7Xwiry1t4tXpx6MIt1'),
-# 	3: 'Preishables',
-# 	4: 'Non Foods',
-# 	5: 'Health & Beauty',
-# 	6: 'GMS'
-# }
-
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
@@ -36,7 +25,7 @@ SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
 SCOPES = ['https://www.googleapis.com/auth/drive']
-MAIN_PARENT_FOLDER_ID = '1GJ2pAchszF5MWFIV7vNoMyv76xa3Wvbm' # Possales_RL > Hyper
+POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF'
 
 SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
 # SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
@@ -150,7 +139,7 @@ def load_gdrive():
 	month, year = get_month_year()
 
 	# auto detect folders - create folder if destination folder does not exists
-	year_folder_id = drive_autodetect_folders(service, MAIN_PARENT_FOLDER_ID, year)
+	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
 
 	# get name of all files to be loaded
@@ -185,32 +174,36 @@ def remove_outfiles():
 	for csv_file in csv_files:
 		os.remove(csv_file)
 
-query_data()
-load_bucket()
-load_gdrive()
-remove_outfiles()
+# query_data()
+# load_bucket()
+# try:
+# 	load_gdrive()
+# 	remove_outfiles()
+# except Exception:
+# 	# remove_outfiles()
+# 	raise
 
-# with DAG(
-# 	'exapp_pipeline',
-# 	start_date=START_DATE,
-# 	schedule="45 00 * * *",
-# 	catchup=True
-# ) as dag:
+with DAG(
+	'exapp_pipeline',
+	start_date=START_DATE,
+	schedule="45 00 * * *",
+	catchup=True
+) as dag:
 	
-# 	task_query_data = PythonOperator(
-# 		task_id='query_data',
-# 		python_callable=query_data,
-# 	)
+	task_query_data = PythonOperator(
+		task_id='query_data',
+		python_callable=query_data,
+	)
 
-# 	task_load_bucket = PythonOperator(
-# 		task_id='load_bucket',
-# 		python_callable=load_bucket
-# 	)
+	task_load_bucket = PythonOperator(
+		task_id='load_bucket',
+		python_callable=load_bucket
+	)
 
-# 	task_remove_outfiles = PythonOperator(
-# 		task_id='remove_outfiles',
-# 		python_callable=remove_outfiles
-# 	)
+	task_remove_outfiles = PythonOperator(
+		task_id='remove_outfiles',
+		python_callable=remove_outfiles
+	)
 	
-# 	task_query_data >> [task_load_bucket]
-# 	task_load_bucket >> task_remove_outfiles
+	task_query_data >> [task_load_bucket]
+	task_load_bucket >> task_remove_outfiles
