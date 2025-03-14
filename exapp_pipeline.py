@@ -133,12 +133,12 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 
 def get_file_dept(file_name:str) -> str:
 	dept = {
-		'1': 'GROCERY',
-		'2': 'FRESH',
-		'3': 'PERISHABLES',
-		'4': 'NON FOODS',
-		'5': 'HEALTH & BEAUTY',
-		'6': 'GMS'
+		'1': '1 - GROCERY',
+		'2': '2 - FRESH',
+		'3': '3 - PERISHABLES',
+		'4': '4 - NON FOODS',
+		'5': '5 - HEALTH & BEAUTY',
+		'6': '6 - GMS'
 	}
 
 	# get the number after possales - department id
