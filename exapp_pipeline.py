@@ -25,9 +25,8 @@ SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
 SCOPES = ['https://www.googleapis.com/auth/drive']
-# change this to GCH Data Warehouse ID
 # POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
-POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF'
+POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain 
 
 SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
 # SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
@@ -132,6 +131,21 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 
 		return folder['id']
 
+def get_file_dept(file_name:str) -> str:
+	dept = {
+		'1': 'GROCERY',
+		'2': 'FRESH',
+		'3': 'PERISHABLES',
+		'4': 'NON FOODS',
+		'5': 'HEALTH & BEAUTY',
+		'6': 'GMS'
+	}
+
+	# get the number after possales - department id
+	file_name = file_name.replace('possales_rl_', '')
+	# return corresponding department name accoridng to department number
+	return dept[file_name[0]]
+
 def load_gdrive():
 	# authenticate
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
@@ -146,8 +160,11 @@ def load_gdrive():
 	csv_files = file_type_in_dir(None, '.csv')
 
 	for csv_file in csv_files:
+		dept = get_file_dept(csv_file)
+		dept_folder_id = drive_autodetect_folders(service, month_folder_id, dept)
+
 		query = f"""
-		'{month_folder_id}' in parents
+		'{dept_folder_id}' in parents
 		and name = '{csv_file}'
 		and trashed=false
 		"""
@@ -161,7 +178,7 @@ def load_gdrive():
 
 		file_metadata = {
 			'name':csv_file,
-			'parents': [month_folder_id]
+			'parents': [dept_folder_id]
 		}
 
 		file = service.files().create(
@@ -180,7 +197,7 @@ try:
 	load_gdrive()
 	remove_outfiles()
 except Exception:
-	# remove_outfiles()
+	remove_outfiles()
 	raise
 
 with DAG(
