@@ -200,10 +200,15 @@ with DAG(
 		python_callable=load_bucket
 	)
 
+	task_load_gdrive = PythonOperator(
+		task_id='load_gdrive',
+		python_callable=load_gdrive
+	)
+
 	task_remove_outfiles = PythonOperator(
 		task_id='remove_outfiles',
 		python_callable=remove_outfiles
 	)
 	
-	task_query_data >> [task_load_bucket]
-	task_load_bucket >> task_remove_outfiles
+	task_query_data >> [task_load_bucket, task_load_gdrive]
+	[task_load_bucket, task_load_gdrive] >> task_remove_outfiles
