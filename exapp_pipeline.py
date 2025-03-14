@@ -191,19 +191,19 @@ def remove_outfiles():
 	for csv_file in csv_files:
 		os.remove(csv_file)
 
-query_data()
-load_bucket()
-try:
-	load_gdrive()
-	remove_outfiles()
-except Exception:
-	remove_outfiles()
-	raise
+# query_data()
+# load_bucket()
+# try:
+# 	load_gdrive()
+# 	remove_outfiles()
+# except Exception:
+# 	remove_outfiles()
+# 	raise
 
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="05 00 * * *",
+	schedule="15 07 * * *",
 	catchup=True
 ) as dag:
 	
