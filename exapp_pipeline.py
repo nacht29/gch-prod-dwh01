@@ -187,7 +187,7 @@ def remove_outfiles():
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="00 14 * * *",
+	schedule="17 15 * * *",
 	catchup=True
 ) as dag:
 	
