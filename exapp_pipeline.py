@@ -78,8 +78,8 @@ def query_data():
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
-			# print(f'SQL script: {script}')
-			# print(f'Results: {results_df.shape}')
+			print(f'SQL script: {script}')
+			print(f'Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -94,7 +94,8 @@ def query_data():
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
 	all_dept = DEPARTMENTS
-	dept_id = file_name.replace('possales_rl_', '')[0]
+	# possales_r1_10_2025-03-11.csv -> 10_2025-03-11.csv -> 10
+	dept_id = file_name.replace('possales_rl_', '').split('_')[0]
 	dept_name = all_dept[dept_id]
 	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
@@ -150,7 +151,7 @@ def get_file_dept(file_name:str) -> str:
 	dept = DEPARTMENTS
 
 	# get the number after possales - department id
-	file_name = file_name.replace('possales_rl_', '')
+	file_name = file_name.replace('possales_rl_', '').split('_')[0]
 	# return corresponding department name accoridng to department number
 	return dept[file_name[0]]
 
@@ -201,6 +202,7 @@ def remove_outfiles():
 
 # query_data()
 # load_bucket()
+## remove_outfiles()
 # try:
 # 	load_gdrive()
 # 	remove_outfiles()
@@ -211,7 +213,7 @@ def remove_outfiles():
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="15 07 * * *",
+	schedule="23 16 * * *",
 	catchup=True
 ) as dag:
 	
