@@ -33,6 +33,15 @@ SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 SLICE_BY_ROWS = 1000000 - 1
 
+DEPARTMENTS = {
+	'1': '1 - GROCERY',
+	'2': '2 - FRESH',
+	'3': '3 - PERISHABLES',
+	'4': '4 - NON FOODS',
+	'5': '5 - HEALTH & BEAUTY',
+	'6': '6 - GMS'
+}
+
 # set up BQ credentials to query data
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
 bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
@@ -69,8 +78,8 @@ def query_data():
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
-			print(f'SQL script: {script}')
-			print(f'Results: {results_df.shape}')
+			# print(f'SQL script: {script}')
+			# print(f'Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -82,19 +91,22 @@ def query_data():
 				# upload subset as csv
 				subset.to_csv(f'{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
 
-def filepath_in_bucket():
+def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
-	return f'supply_chain/possales_rl/{year}/{month}'
+	all_dept = DEPARTMENTS
+	dept_id = file_name.replace('possales_rl_', '')[0]
+	dept_name = all_dept[dept_id]
+	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
 def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
-	load_files = file_type_in_dir(None, '.csv')
-	for file in load_files:
-		path_in_bucket = f'{filepath_in_bucket()}/{file}'
+	csv_files = file_type_in_dir(None, '.csv')
+	for csv_file in csv_files:
+		path_in_bucket = f'{filepath_in_bucket(csv_file)}'
 		# bucket.blob(path_in_bucket).upload()
 		blob = bucket.blob(path_in_bucket)
-		blob.upload_from_filename(file)
+		blob.upload_from_filename(csv_file)
 
 def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	'''
@@ -135,14 +147,7 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 		return folder['id']
 
 def get_file_dept(file_name:str) -> str:
-	dept = {
-		'1': '1 - GROCERY',
-		'2': '2 - FRESH',
-		'3': '3 - PERISHABLES',
-		'4': '4 - NON FOODS',
-		'5': '5 - HEALTH & BEAUTY',
-		'6': '6 - GMS'
-	}
+	dept = DEPARTMENTS
 
 	# get the number after possales - department id
 	file_name = file_name.replace('possales_rl_', '')
@@ -206,7 +211,7 @@ def remove_outfiles():
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="15 13 * * *",
+	schedule="15 07 * * *",
 	catchup=True
 ) as dag:
 	
