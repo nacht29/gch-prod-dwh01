@@ -19,8 +19,8 @@ from google.api_core.exceptions import Forbidden, NotFound
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
@@ -28,8 +28,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 # POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain 
 
-# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 SLICE_BY_ROWS = 1000000 - 1
 
@@ -68,6 +68,9 @@ def query_data():
 		with open(f'{SQL_SCRIPTS_PATH}{script}', 'r') as cur_script:
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
+
+			print(f'SQL script: {script}')
+			print(f'Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -174,7 +177,7 @@ def load_gdrive():
 
 		if dup_files:
 			for dup_file in dup_files:
-				service.files().delete(fileID=dup_file['id']).execute()
+				service.files().delete(fileId=dup_file['id']).execute()
 
 		file_metadata = {
 			'name':csv_file,
@@ -203,7 +206,7 @@ def remove_outfiles():
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="15 07 * * *",
+	schedule="15 13 * * *",
 	catchup=True
 ) as dag:
 	
