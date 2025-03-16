@@ -1,15 +1,8 @@
-import pendulum
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.models.param import Param
-from airflow.utils.log.logging_mixin import LoggingMixin
-
 import os
-import warnings
-import subprocess
+import logging as log
 import calendar
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
 from google.cloud import bigquery as bq
 from google.cloud import storage
 from google.oauth2 import service_account
@@ -19,7 +12,7 @@ from google.api_core.exceptions import Forbidden, NotFound
 '''
 DATETIME constants
 '''
-TIME_ZONE = pendulum.timezone('Asia/Singapore')
+TIME_ZONE = timezone(timedelta(hours=8))
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
 '''
@@ -32,11 +25,16 @@ SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 '''
 LOCAL FILE PATHS
 '''
-# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl'
 
-OUTFILES_DIR = '/home/yanzhe/outfiles'
 # OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
+OUTFILES_DIR = '/home/yanzhe/outfiles'
+os.makedirs(OUTFILES_DIR, exist_ok=True)
+
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
+PY_LOGS_DIR = '/home/yanzhe/py_log'
+os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
 GOOGLE DRIVE PARAMS
@@ -60,11 +58,80 @@ DEPARTMENTS = {
 	'6': '6 - GMS'
 }
 
+'''
+Logging
+'''
+month = calendar.month_name[datetime.now().month]
+year = datetime.now().year
+
+# create log dir for current month/year
+LOG_DIR = f'{PY_LOGS_DIR}/{year}/{month}'
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# create log file name with timestamp
+log_file_name = f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_pylog.txt'
+log_file_fullpath = f'{LOG_DIR}/{log_file_name}'
+
+# config logging
+log.basicConfig(
+    filename=log_file_fullpath,
+    level=log.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# log to console for debugging
+console_handler = log.StreamHandler()
+console_handler.setLevel(log.INFO)
+log.getLogger().addHandler(console_handler)
+
+log.info('exapp_pipeline --initiated')
+
 # set up BQ credentials to query data
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
 bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
 bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
 
+def main():
+	try:
+		log.info('Query data from BigQuery: running')
+		query_data()
+		log.info('Query data from BigQuery: success')
+	except Exception as error:
+		log.error(f'Query data from BigQuery: failed\n\n{error}')
+		export_logs()
+		remove_outfiles()
+
+	try:
+		log.info('Load data to GCS Bucket: running')
+		load_bucket()
+		log.info('Load data to GCS Bucket: success')
+	except Exception as error:
+		log.error(f'Load data to GCS Bucket: failed\n\n{error}')
+		export_logs()
+		remove_outfiles()
+
+	try:
+		log.info('Load data to Drive: running')
+		load_gdrive()
+		log.info('Load data to Drive: success')
+	except Exception as error:
+		log.error(f'Load data to Drive: failed\n\n{error}')
+		export_logs()
+		remove_outfiles()
+
+	log.info('Exporting logs...')
+	export_logs()
+	log.info('Removing outfiles...')
+	remove_outfiles()
+	log.info('Pipeline success')
+
+'''
+Helper functions
+'''
+
+# get the names of specific file types in a dir
+# if dir = None			: get from root
+# if file_type = None	: get all file names
 def file_type_in_dir(file_dir:str, file_type:str):
 	if file_dir is None:
 		files_in_dir = os.listdir()
@@ -76,10 +143,7 @@ def file_type_in_dir(file_dir:str, file_type:str):
 	else:
 		return [file for file in files_in_dir if file.endswith(file_type)]
 
-def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
-	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
-	return file_name
-
+# get current month and year
 # return (mm,yyyy)
 def get_month_year() -> tuple:
 	month = calendar.month_name[datetime.now().month]
@@ -87,12 +151,26 @@ def get_month_year() -> tuple:
 
 	return (month, year)
 
+# generate file name based on naming concentions
+# infile:	possales_rl_{dept}.sql
+# outfile:	possales_rl_{dept}_{date}_{ver}_{outfile_type}
+# e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.csv
+def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
+	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
+	return file_name
+
+'''
+Main processes
+'''
+
+# get data from BQ and export as CSV to outfiles/
+# slices data by million rows
 def query_data():
 	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
 
 	# run each script
 	for script in sql_scripts:
-		with open(f'{SQL_SCRIPTS_PATH}{script}', 'r') as cur_script:
+		with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
@@ -109,6 +187,8 @@ def query_data():
 				# upload subset as csv
 				subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
 
+# generate path to GCS Bucket for the file
+# detects Year > Month > Dept
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
 	all_dept = DEPARTMENTS
@@ -117,6 +197,7 @@ def filepath_in_bucket(file_name:str):
 	dept_name = all_dept[dept_id]
 	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
+# load csv files to bucket
 def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
@@ -128,6 +209,7 @@ def load_bucket():
 		blob = bucket.blob(path_in_bucket)
 		blob.upload_from_filename(f'{OUTFILES_DIR}/{csv_file}')
 
+# detect and dynamically create folders for file in Drive
 def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	'''
 	# searches if folder exists in drive
@@ -140,6 +222,8 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	]
 	'''
 
+	# get all folder names in dest
+	# parent_folder_id: folder id folder right before the dest folder
 	query = f"""
 	'{parent_folder_id}' in parents 
 	and name='{folder_name}'
@@ -147,9 +231,13 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	and trashed=false
 	"""
 
+	# execute the query
 	results = service.files().list(q=query, fields='files(id,name)').execute()
 	files_in_drive = results.get('files') # files_in_drive = results.get('files', [])
 
+	# return dest folder id if detected
+	# create dest folder if not yet created
+	# this is the dynamic folder creation
 	if files_in_drive:
 		return files_in_drive[0]['id']
 	else:
@@ -166,6 +254,7 @@ def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 
 		return folder['id']
 
+# get the name of the department where the file should be stored
 def get_file_dept(file_name:str) -> str:
 	dept = DEPARTMENTS
 
@@ -174,6 +263,7 @@ def get_file_dept(file_name:str) -> str:
 	# return corresponding department name accoridng to department number
 	return dept[file_name[0]]
 
+# load csv file to Drive
 def load_gdrive():
 	# authenticate
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
@@ -184,23 +274,29 @@ def load_gdrive():
 	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
 
-	# get name of all files to be loaded
+	# get name of all csv files to be loaded
 	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
-	print(f'load drive csv: {csv_files}')
 
+	# process each csv file
 	for csv_file in csv_files:
+		# detect if dept folder for current csv file exists
+		# if not, create the folder
+		# return dept folder id
 		dept = get_file_dept(csv_file)
 		dept_folder_id = drive_autodetect_folders(service, month_folder_id, dept)
 
+		# get all files in dept folder
 		query = f"""
 		'{dept_folder_id}' in parents
 		and name = '{csv_file}'
 		and trashed=false
 		"""
 
+		# execute the query
 		results = service.files().list(q=query, fields='files(id, name)').execute()
 		dup_files = results.get('files')
 
+		# remove duplicates and write the latest file to Drive
 		if dup_files:
 			for dup_file in dup_files:
 				service.files().delete(fileId=dup_file['id']).execute()
@@ -210,28 +306,39 @@ def load_gdrive():
 			'parents': [dept_folder_id]
 		}
 
-		print(f'drive loading {csv_file}')
-
 		file = service.files().create(
 			body=file_metadata,
 			media_body=f'{OUTFILES_DIR}/{csv_file}'
 		).execute()
 
+'''
+Outfiles and logs
+'''
+
+# remove all csv files from local
 def remove_outfiles():
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
+	try:
+		csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
+		for csv_file in csv_files:
+			os.remove(f'{OUTFILES_DIR}/{csv_file}')
+	except Exception:
+		raise
+	
+def export_logs():
+	bucket = bucket_client.get_bucket('gch_extract_drive_01')
+	month, year = get_month_year()
+	dir_path_in_bucket = f'supply_chain/possales_rl/airflow-logs/{year}/{month}'
 
-	for csv_file in csv_files:
-		os.remove(f'{OUTFILES_DIR}/{csv_file}')
+	log_files = file_type_in_dir(LOG_DIR, '.txt')
+	for log_file in log_files:
+		path_in_bucket = f'{dir_path_in_bucket}/{log_file}'
+		blob = bucket.blob(path_in_bucket)
+		blob.upload_from_filename(f'{LOG_DIR}/{log_file}')
 
-try:
-	query_data()
-	load_bucket()
-	load_gdrive()
-	remove_outfiles()
-except Exception:
-	remove_outfiles()
-	raise
+if __name__ == '__main__':
+	main()
 
+'''
 # 15 07 * * *
 with DAG(
 	'exapp_pipeline',
@@ -262,3 +369,4 @@ with DAG(
 	
 	task_query_data >> [task_load_bucket, task_load_gdrive]
 	[task_load_bucket, task_load_gdrive] >> task_remove_outfiles
+'''
