@@ -19,8 +19,8 @@ from google.api_core.exceptions import Forbidden, NotFound
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # Google Drive params
@@ -28,8 +28,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 # POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
 
-# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
 
 SLICE_BY_ROWS = 1000000 - 1
 
@@ -90,6 +90,7 @@ def query_data():
 				out_filename = gen_file_name(script, '.sql', '.csv', file_ver)
 				# upload subset as csv
 				subset.to_csv(f'{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
+				print(file_type_in_dir(None, '.csv'))
 
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
@@ -103,10 +104,13 @@ def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
 	csv_files = file_type_in_dir(None, '.csv')
+	print(f'load bucket csv: {csv_files}')
+
 	for csv_file in csv_files:
 		path_in_bucket = f'{filepath_in_bucket(csv_file)}'
 		# bucket.blob(path_in_bucket).upload()
 		blob = bucket.blob(path_in_bucket)
+		print(f'bucket loading {csv_file}')
 		blob.upload_from_filename(csv_file)
 
 def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
@@ -167,6 +171,7 @@ def load_gdrive():
 
 	# get name of all files to be loaded
 	csv_files = file_type_in_dir(None, '.csv')
+	print(f'load drive csv: {csv_files}')
 
 	for csv_file in csv_files:
 		dept = get_file_dept(csv_file)
@@ -190,6 +195,8 @@ def load_gdrive():
 			'parents': [dept_folder_id]
 		}
 
+		print(f'drive loading {csv_file}')
+
 		file = service.files().create(
 			body=file_metadata,
 			media_body=csv_file
@@ -197,7 +204,10 @@ def load_gdrive():
 
 def remove_outfiles():
 	csv_files = file_type_in_dir(None, '.csv')
+	print(f'remove {csv_files}')
+
 	for csv_file in csv_files:
+		print(f'removing {csv_file}')
 		os.remove(csv_file)
 
 query_data()
