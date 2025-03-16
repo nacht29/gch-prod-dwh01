@@ -200,7 +200,7 @@ def remove_outfiles():
 	for csv_file in csv_files:
 		os.remove(csv_file)
 
-# query_data()
+query_data()
 # load_bucket()
 ## remove_outfiles()
 # try:
@@ -214,7 +214,7 @@ def remove_outfiles():
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="15 07 * * *",
+	schedule="48 13 * * *",
 	catchup=True
 ) as dag:
 	
