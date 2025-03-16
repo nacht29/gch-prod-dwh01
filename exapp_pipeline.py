@@ -201,14 +201,14 @@ def remove_outfiles():
 		os.remove(csv_file)
 
 query_data()
-# load_bucket()
-## remove_outfiles()
-# try:
-# 	load_gdrive()
-# 	remove_outfiles()
-# except Exception:
-# 	remove_outfiles()
-# 	raise
+load_bucket()
+# remove_outfiles()
+try:
+	load_gdrive()
+	remove_outfiles()
+except Exception:
+	remove_outfiles()
+	raise
 
 # 15 07 * * *
 with DAG(
