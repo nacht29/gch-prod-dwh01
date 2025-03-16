@@ -214,7 +214,7 @@ query_data()
 with DAG(
 	'exapp_pipeline',
 	start_date=START_DATE,
-	schedule="30 14 * * *",
+	schedule="05 15 * * *",
 	catchup=True
 ) as dag:
 	
