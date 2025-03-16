@@ -226,6 +226,7 @@ def remove_outfiles():
 try:
 	query_data()
 	load_bucket()
+	load_gdrive()
 	remove_outfiles()
 except Exception:
 	remove_outfiles()
