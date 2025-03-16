@@ -16,21 +16,39 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from google.api_core.exceptions import Forbidden, NotFound
 
+'''
+DATETIME constants
+'''
 TIME_ZONE = pendulum.timezone('Asia/Singapore')
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+'''
+CREDENTIALS	
+'''
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
-# Google Drive params
+'''
+LOCAL FILE PATHS
+'''
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
+
+OUTFILES_DIR = '/home/yanzhe/outfiles'
+# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
+
+'''
+GOOGLE DRIVE PARAMS
+'''
 SCOPES = ['https://www.googleapis.com/auth/drive']
+
 # POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
 
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl/'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl/'
-
+'''
+OUTPUT FILE CONFIG
+'''
 SLICE_BY_ROWS = 1000000 - 1
 
 DEPARTMENTS = {
@@ -78,8 +96,8 @@ def query_data():
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
-			print(f'SQL script: {script}')
-			print(f'Results: {results_df.shape}')
+			# print(f'SQL script: {script}')
+			# print(f'Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -89,8 +107,7 @@ def query_data():
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
 				out_filename = gen_file_name(script, '.sql', '.csv', file_ver)
 				# upload subset as csv
-				subset.to_csv(f'{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
-				print(file_type_in_dir(None, '.csv'))
+				subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
 
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
@@ -103,15 +120,13 @@ def filepath_in_bucket(file_name:str):
 def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
-	csv_files = file_type_in_dir(None, '.csv')
-	print(f'load bucket csv: {csv_files}')
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
 
 	for csv_file in csv_files:
 		path_in_bucket = f'{filepath_in_bucket(csv_file)}'
 		# bucket.blob(path_in_bucket).upload()
 		blob = bucket.blob(path_in_bucket)
-		print(f'bucket loading {csv_file}')
-		blob.upload_from_filename(csv_file)
+		blob.upload_from_filename(f'{OUTFILES_DIR}/{csv_file}')
 
 def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	'''
@@ -170,7 +185,7 @@ def load_gdrive():
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
 
 	# get name of all files to be loaded
-	csv_files = file_type_in_dir(None, '.csv')
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
 	print(f'load drive csv: {csv_files}')
 
 	for csv_file in csv_files:
@@ -199,22 +214,18 @@ def load_gdrive():
 
 		file = service.files().create(
 			body=file_metadata,
-			media_body=csv_file
+			media_body=f'{OUTFILES_DIR}/{csv_file}'
 		).execute()
 
 def remove_outfiles():
-	csv_files = file_type_in_dir(None, '.csv')
-	print(f'remove {csv_files}')
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
 
 	for csv_file in csv_files:
-		print(f'removing {csv_file}')
-		os.remove(csv_file)
+		os.remove(f'{OUTFILES_DIR}/{csv_file}')
 
-query_data()
-load_bucket()
-# remove_outfiles()
 try:
-	load_gdrive()
+	query_data()
+	load_bucket()
 	remove_outfiles()
 except Exception:
 	remove_outfiles()
