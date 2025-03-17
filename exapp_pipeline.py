@@ -58,6 +58,8 @@ DEPARTMENTS = {
 	'6': '6 - GMS'
 }
 
+DELIMITER = ','
+
 '''
 Logging
 '''
@@ -86,7 +88,7 @@ log.getLogger().addHandler(console_handler)
 
 log.info('exapp_pipeline --initiated')
 
-# set up BQ credentials to query data
+# set up credentials for BQ and Drive to query data
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
 bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
 bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
@@ -185,7 +187,7 @@ def query_data():
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
 				out_filename = gen_file_name(script, '.sql', '.csv', file_ver)
 				# upload subset as csv
-				subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep='|', encoding='utf-8', index=False, header=True)
+				subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
 
 # generate path to GCS Bucket for the file
 # detects Year > Month > Dept
