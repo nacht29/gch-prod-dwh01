@@ -342,36 +342,3 @@ def export_logs():
 
 if __name__ == '__main__':
 	main()
-
-'''
-# 15 07 * * *
-with DAG(
-	'exapp_pipeline',
-	start_date=START_DATE,
-	schedule="46 16 * * *",
-	catchup=True
-) as dag:
-	
-	task_query_data = PythonOperator(
-		task_id='query_data',
-		python_callable=query_data,
-	)
-
-	task_load_bucket = PythonOperator(
-		task_id='load_bucket',
-		python_callable=load_bucket
-	)
-
-	task_load_gdrive = PythonOperator(
-		task_id='load_gdrive',
-		python_callable=load_gdrive
-	)
-
-	task_remove_outfiles = PythonOperator(
-		task_id='remove_outfiles',
-		python_callable=remove_outfiles
-	)
-	
-	task_query_data >> [task_load_bucket, task_load_gdrive]
-	[task_load_bucket, task_load_gdrive] >> task_remove_outfiles
-'''
