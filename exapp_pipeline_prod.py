@@ -313,8 +313,7 @@ def load_gdrive():
 		file = service.files().create(
 			body=file_metadata,
 			media_body=f'{OUTFILES_DIR}/{csv_file}',
-			supportsAllDrives=True,			# required for shared drives
-		    includeItemsFromAllDrives=True
+			supportsAllDrives=True  # required for Shared Drives
 		).execute()
 
 '''

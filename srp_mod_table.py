@@ -124,7 +124,6 @@ def union_files(main_df):
 		cur_filepath = f'{CSV_DIR}/{csv_file}'
 		cur_df = pd.read_csv(cur_filepath, sep=',')
 		loc, file_date = get_loc_date(csv_file)
-		# if (file_date[0:4] == '2023'):
 		cur_df['location'] = loc
 		cur_df['date'] = file_date
 		main_df = pd.concat([main_df, cur_df], ignore_index=True, sort=False)
@@ -134,8 +133,11 @@ def union_files(main_df):
 '''
 Load data to BQ
 '''
+def snake_case(col:str) -> str:
+	return(col.lower().strip().replace(' ','_').replace('-', '_'))
+
 def load_table(df) -> tuple:
-	temp_table = f'gch-prod-dwh01.srp.srp_mod_tmp'
+	temp_table = f'gch-prod-dwh01.srp_data.srp_possales_{str(df['location'].unique()[0])}'
 
 	job_config = bq.LoadJobConfig(
 		write_disposition='WRITE_TRUNCATE',
@@ -150,13 +152,27 @@ def load_table(df) -> tuple:
 
 	return (job.result(), temp_table)
 
+def load_bq(df):
+	'''
+	unique_dates = list(df['date'].dt.to_period('M').unique())
+	for year_month in unique_dates:
+		load_df = df[df['date'].to_period('M') == year_month]
+		load_table(load_df)
+	'''
+	unique_loc = list(df['location'].unique())
+	
+	for u_loc in unique_loc:
+		load_df = df[df['location'] == u_loc]
+		load_table(load_df)
+
 def main():
 	# get_files_from_drive()
 	main_df = pd.DataFrame()
 	main_df = union_files(main_df)
 	main_df['date'] = main_df['date'].astype(str)
-	main_df['date'] = pd.to_datetime(main_df['date']).dt.floor('D')
-	load_table(main_df)
+	main_df['date'] = pd.to_datetime(main_df['date']).dt.date
+	main_df.columns = [snake_case(col) for col in main_df.columns]
+	load_bq(main_df)
 
 if __name__ == '__main__':
 	main()
