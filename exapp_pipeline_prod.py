@@ -319,7 +319,7 @@ def load_gdrive():
 
 		# remove duplicates and write the latest file to Drive
 		if dup_files:
-			log.info(f'Updating {dup_files[0]['name']}')
+			log.info(f"Updating {dup_files[0]['name']}")
 			dup_file_id = dup_files[0]['id']
 			file = service.files().update(
 				fileId=dup_file_id,
