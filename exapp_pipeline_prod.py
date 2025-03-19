@@ -180,8 +180,8 @@ def query_data():
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
 
-			# print(f'SQL script: {script}')
-			# print(f'Results: {results_df.shape}')
+			log.info(f'SQL script: {script}')
+			log.info(f'Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -190,6 +190,7 @@ def query_data():
 				# get subset of full query result (sliced by rows)
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
 				out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
+				log.info(f'Downloaded: {out_filename}')
 				# upload subset as excel
 				subset.to_excel(f'{OUTFILES_DIR}/{out_filename}', index=False, header=True)
 				# subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
