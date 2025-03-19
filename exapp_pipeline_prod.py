@@ -1,5 +1,6 @@
 import os
 import calendar
+import pyxlsb
 import logging as log
 import pandas as pd
 from datetime import date, datetime, timezone, timedelta
@@ -86,7 +87,7 @@ console_handler = log.StreamHandler()
 console_handler.setLevel(log.INFO)
 log.getLogger().addHandler(console_handler)
 
-log.info('exapp_pipeline --initiated')
+log.info('exapp_pipeline_prod --initiated')
 
 # set up credentials for BQ and Drive to query data
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)

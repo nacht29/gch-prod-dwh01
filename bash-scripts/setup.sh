@@ -27,8 +27,9 @@ fi
 /home/yanzhe/myvenv/bin/python -m pip install --upgrade \
     google-cloud-bigquery google-api-python-client google-auth \
     google-auth-oauthlib google-auth-httplib2 google-cloud-storage \
-    pydrive db-dtypes xlrd pandas openpyxl apache-airflow apache-airflow[gcp] \
+    pydrive db-dtypes xlrd pandas openpyxl pyxlsb\
     google-cloud-bigquery-storage
+    # apache-airflow apache-airflow[gcp]
 
 
 # Run py script
