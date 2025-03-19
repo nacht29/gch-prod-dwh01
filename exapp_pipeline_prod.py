@@ -18,22 +18,22 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 '''
 CREDENTIALS	
 '''
-JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 '''
 LOCAL FILE PATHS
 '''
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl'
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl'
 
-OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
-# OUTFILES_DIR = '/home/yanzhe/outfiles'
+# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
+OUTFILES_DIR = '/home/yanzhe/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
-# PY_LOGS_DIR = '/home/yanzhe/py_log'
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
+PY_LOGS_DIR = '/home/yanzhe/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
