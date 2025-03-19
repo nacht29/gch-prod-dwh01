@@ -18,22 +18,22 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 '''
 CREDENTIALS	
 '''
-# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 '''
 LOCAL FILE PATHS
 '''
-# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
+# SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
 
-# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
-OUTFILES_DIR = '/home/yanzhe/outfiles'
+OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
+# OUTFILES_DIR = '/home/yanzhe/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
-PY_LOGS_DIR = '/home/yanzhe/py_log'
+PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
+# PY_LOGS_DIR = '/home/yanzhe/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
@@ -190,7 +190,7 @@ def query_data():
 				# get subset of full query result (sliced by rows)
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
 				out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
-				log.info(f'Downloaded: {out_filename}')
+				log.info(f'Downloading: {out_filename}')
 				# upload subset as excel
 				subset.to_excel(f'{OUTFILES_DIR}/{out_filename}', index=False, header=True)
 				# subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
