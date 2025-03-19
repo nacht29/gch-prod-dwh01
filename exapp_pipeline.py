@@ -19,14 +19,14 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 CREDENTIALS	
 '''
 # JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 '''
 LOCAL FILE PATHS
 '''
 # SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
 
 # OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
 OUTFILES_DIR = '/home/yanzhe/outfiles'
@@ -102,6 +102,7 @@ def main():
 		log.error(f'Query data from BigQuery: failed\n\n{error}')
 		export_logs()
 		remove_outfiles()
+		raise
 
 	try:
 		log.info('Load data to GCS Bucket: running')
@@ -111,6 +112,7 @@ def main():
 		log.error(f'Load data to GCS Bucket: failed\n\n{error}')
 		export_logs()
 		remove_outfiles()
+		raise
 
 	try:
 		log.info('Load data to Drive: running')
@@ -120,10 +122,9 @@ def main():
 		log.error(f'Load data to Drive: failed\n\n{error}')
 		export_logs()
 		remove_outfiles()
+		raise
 
-	log.info('Exporting logs...')
 	export_logs()
-	log.info('Removing outfiles...')
 	remove_outfiles()
 	log.info('Pipeline success')
 
@@ -156,7 +157,7 @@ def get_month_year() -> tuple:
 # generate file name based on naming concentions
 # infile:	possales_rl_{dept}.sql
 # outfile:	possales_rl_{dept}_{date}_{ver}_{outfile_type}
-# e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.csv
+# e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.xlsx
 def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
 	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
 	return file_name
@@ -185,8 +186,8 @@ def query_data():
 				file_ver = cur_row // SLICE_BY_ROWS + 1
 				# get subset of full query result (sliced by rows)
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
-				out_filename = gen_file_name(script, '.sql', '.csv', file_ver)
-				# upload subset as csv
+				out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
+				# upload subset as xlsx
 				subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
 
 # generate path to GCS Bucket for the file
@@ -194,16 +195,16 @@ def query_data():
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
 	all_dept = DEPARTMENTS
-	# possales_r1_10_2025-03-11.csv -> 10_2025-03-11.csv -> 10
+	# possales_r1_10_2025-03-11.xlsx -> 10_2025-03-11.xlsx -> 10
 	dept_id = file_name.replace('possales_rl_', '').split('_')[0]
 	dept_name = all_dept[dept_id]
 	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
-# load csv files to bucket
+# load xlsx files to bucket
 def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 
 	for csv_file in csv_files:
 		path_in_bucket = f'{filepath_in_bucket(csv_file)}'
@@ -265,7 +266,7 @@ def get_file_dept(file_name:str) -> str:
 	# return corresponding department name accoridng to department number
 	return dept[file_name[0]]
 
-# load csv file to Drive
+# load xlsx file to Drive
 def load_gdrive():
 	# authenticate
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
@@ -276,12 +277,12 @@ def load_gdrive():
 	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
 
-	# get name of all csv files to be loaded
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
+	# get name of all xlsx files to be loaded
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 
-	# process each csv file
+	# process each xlsx file
 	for csv_file in csv_files:
-		# detect if dept folder for current csv file exists
+		# detect if dept folder for current xlsx file exists
 		# if not, create the folder
 		# return dept folder id
 		dept = get_file_dept(csv_file)
@@ -317,16 +318,18 @@ def load_gdrive():
 Outfiles and logs
 '''
 
-# remove all csv files from local
+# remove all xlsx files from local
 def remove_outfiles():
+	log.info('Removing outfiles...')
 	try:
-		csv_files = file_type_in_dir(OUTFILES_DIR, '.csv')
+		csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 		for csv_file in csv_files:
 			os.remove(f'{OUTFILES_DIR}/{csv_file}')
 	except Exception:
 		raise
 	
 def export_logs():
+	log.info('Exporting logs...')
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 	month, year = get_month_year()
 	dir_path_in_bucket = f'supply_chain/possales_rl/airflow-logs/{year}/{month}'
@@ -339,36 +342,3 @@ def export_logs():
 
 if __name__ == '__main__':
 	main()
-
-'''
-# 15 07 * * *
-with DAG(
-	'exapp_pipeline',
-	start_date=START_DATE,
-	schedule="46 16 * * *",
-	catchup=True
-) as dag:
-	
-	task_query_data = PythonOperator(
-		task_id='query_data',
-		python_callable=query_data,
-	)
-
-	task_load_bucket = PythonOperator(
-		task_id='load_bucket',
-		python_callable=load_bucket
-	)
-
-	task_load_gdrive = PythonOperator(
-		task_id='load_gdrive',
-		python_callable=load_gdrive
-	)
-
-	task_remove_outfiles = PythonOperator(
-		task_id='remove_outfiles',
-		python_callable=remove_outfiles
-	)
-	
-	task_query_data >> [task_load_bucket, task_load_gdrive]
-	[task_load_bucket, task_load_gdrive] >> task_remove_outfiles
-'''
