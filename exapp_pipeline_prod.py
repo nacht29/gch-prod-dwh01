@@ -19,14 +19,14 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 CREDENTIALS	
 '''
 # JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gchexapp01p/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 '''
 LOCAL FILE PATHS
 '''
 # SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gchexapp01p/sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
 
 # OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
 OUTFILES_DIR = '/home/yanzhe/outfiles'
