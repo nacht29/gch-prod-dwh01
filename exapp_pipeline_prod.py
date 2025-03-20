@@ -22,6 +22,11 @@ CREDENTIALS
 JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
+# set up credentials for BQ and Drive to query data
+credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
+bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
+bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
+
 '''
 LOCAL FILE PATHS
 '''
@@ -87,11 +92,6 @@ console_handler.setLevel(log.INFO)
 log.getLogger().addHandler(console_handler)
 
 log.info('exapp_pipeline_prod --initiated')
-
-# set up credentials for BQ and Drive to query data
-credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
-bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
-bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
 
 def main():
 	try:
@@ -177,11 +177,10 @@ def query_data():
 	# run each script
 	for script in sql_scripts:
 		with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
+			log.info(f'Current SQL query: {script}')
 			query = ' '.join([line for line in cur_script])
 			results_df = bq_client.query(query).to_dataframe()
-
-			log.info(f'SQL script: {script}')
-			log.info(f'Results: {results_df.shape}')
+			log.info(f'{datetime.now().time} Results: {results_df.shape}')
 
 			# slice the results of eac script
 			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
