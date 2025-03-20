@@ -8,6 +8,7 @@ from google.cloud import bigquery as bq
 from google.cloud import storage
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 from google.api_core.exceptions import Forbidden, NotFound
 
 '''
