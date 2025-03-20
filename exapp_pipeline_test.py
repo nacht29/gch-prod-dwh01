@@ -2,7 +2,7 @@ import os
 import calendar
 import logging as log
 import pandas as pd
-from io import BytesIO, MediaIoBaseUpload
+from io import BytesIO
 from datetime import date, datetime, timezone, timedelta
 from google.cloud import bigquery as bq
 from google.cloud import storage
