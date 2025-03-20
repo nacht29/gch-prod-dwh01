@@ -2,7 +2,7 @@ import os
 import calendar
 import logging as log
 import pandas as pd
-from io import BytesIO
+from io import BytesIO, MediaIoBaseUpload
 from datetime import date, datetime, timezone, timedelta
 from google.cloud import bigquery as bq
 from google.cloud import storage
@@ -49,6 +49,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 
 POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 # POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
+
+SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
 
 '''
 OUTPUT FILE CONFIG
@@ -149,9 +151,118 @@ def load_bucket(excel_buffer, out_filename:str):
 		content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 	)
 
+'''
+Load Google Drive
+'''
+
+def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
+	'''
+	# searches if folder exists in drive
+	# returns a list of dict
+	# id = file/folder id
+	# name = file/folder name
+	files = [
+		{'id':0, 'name':'A'},
+		{'id':1, 'name':'B'}
+	]
+	'''
+
+	# get all folder names in dest
+	# parent_folder_id: folder id folder right before the dest folder
+	query = f"""
+	'{parent_folder_id}' in parents 
+	and name='{folder_name}'
+	and mimeType='application/vnd.google-apps.folder' 
+	and trashed=false
+	"""
+
+	# execute the query
+	results = service.files().list(
+		q=query,
+		fields='files(id,name)',
+		supportsAllDrives=True, # required when accessing shared drives
+		includeItemsFromAllDrives=True # ONLY NEEDED FOR '''.list()''' method!!!
+	).execute()
+	files_in_drive = results.get('files') # files_in_drive = results.get('files', [])
+
+	# return dest folder id if detected
+	# create dest folder if not yet created
+	# this is the dynamic folder creation
+	if files_in_drive:
+		return files_in_drive[0]['id']
+	else:
+		file_metadata = {
+			'name': folder_name,
+			'mimeType': 'application/vnd.google-apps.folder',
+			'parents': [parent_folder_id]
+		}
+
+		folder = service.files().create(
+			body=file_metadata,
+			fields='id',
+			supportsAllDrives=True # required when accessing shared drives
+			# note that for .create, there is no need to includeItemsFromAllDrives=True
+		).execute()
+
+		return folder['id']
+
+# get the name of the department where the file should be stored
+def get_file_dept(file_name:str) -> str:
+	dept = DEPARTMENTS
+
+	# get the number after possales - department id
+	file_name = file_name.replace('possales_rl_', '').split('_')[0]
+	# return corresponding department name accoridng to department number
+	return dept[file_name[0]]
+
+
 def load_gdrive(excel_buffer, out_filename:str):
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
 	service = build('drive', 'v3', credentials=creds)
+
+	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
+	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
+	dept = get_file_dept(out_filename)
+	dept_folder_id = drive_autodetect_folders(service, month_folder_id, dept)
+
+	query = f"""
+	'{dept_folder_id}' in parents
+	and name = '{out_filename}'
+	and trashed=false
+	"""
+
+	# execute the query
+	results = service.files().list(
+			q=query,
+			fields='files(id, name)',
+			supportsAllDrives=True,
+			includeItemsFromAllDrives=True
+	).execute()
+
+	dup_files = results.get('files')
+	log.info(f'dup_files {dup_files}')
+	
+	file_metadata = {
+		'name': out_filename,
+		'parents': POSSALES_RL_FOLDER_ID,
+		'driveId': SHARED_DRIVE_ID
+	}
+
+	media = MediaIoBaseUpload(
+		excel_buffer,
+		mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		resumable=True
+	)
+
+	# Upload to Google Drive with shared drive support
+	service.files().create(
+		body=file_metadata,
+		media_body=media,
+		fields='id',
+		supportsAllDrives=True,
+		includeItemsFromAllDrives=True
+	).execute()
+
 
 '''
 Main process (pipeline)
@@ -165,7 +276,7 @@ def exapp_pipeline_test():
 			Querying
 			'''
 			with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
-				log.info(f'Query: {script}')
+				log.info(f'{datetime.now()} Query: {script}')
 				query = ' '.join([line for line in cur_script])
 				results_df = bq_client.query(query).to_dataframe()
 				log.info(f'Results: {results_df.shape}')
@@ -186,26 +297,33 @@ def exapp_pipeline_test():
 					Write to Excel
 					'''
 					# init binary buffer for xlsx file
+					log.info(f'{datetime.now()} creating xlsx binary for {out_filename}')
 					excel_buffer = BytesIO()
 					with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
 						subset.to_excel(writer, index=False, header=True)
 					excel_buffer.seek(0)
+					datetime.now()
+					log.info(f'{datetime.now()} {out_filename} binary created')
 
 					'''
 					Loading
 					'''
 					# load to BQ
 					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Bucket')
 						load_bucket(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded')
 					except Exception as error:
 						log.error(f'Failed to load to Bucket.\n\n{error}')
 						raise
 					
 					# load to drive
 					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Drive')
 						load_gdrive(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded')
 					except Exception as error:
-						log.error(f'Failed to load to Bucket.\n\n{error}')
+						log.error(f'Failed to load to Drive.\n\n{error}')
 						raise
 
 					# close the buffer
