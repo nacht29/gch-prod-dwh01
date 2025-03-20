@@ -276,7 +276,7 @@ def load_gdrive(excel_buffer, out_filename:str):
 '''
 Main process (pipeline)
 '''
-def exapp_pipeline_test():
+def exapp_pipeline_prod():
 	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
 
 	for script in sql_scripts:
@@ -343,4 +343,4 @@ def exapp_pipeline_test():
 		except Exception as error:
 			raise
 
-exapp_pipeline_test()
+exapp_pipeline_prod()
