@@ -95,7 +95,6 @@ log.getLogger().addHandler(console_handler)
 
 log.info(f'{datetime.now()} exapp_pipeline_prod --initiated')
 
-
 '''
 Helper functions
 '''
