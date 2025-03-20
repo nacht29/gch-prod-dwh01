@@ -93,7 +93,7 @@ console_handler = log.StreamHandler()
 console_handler.setLevel(log.INFO)
 log.getLogger().addHandler(console_handler)
 
-log.info('exapp_pipeline_prod --initiated')
+log.info(f'{datetime.now()} exapp_pipeline_prod --initiated')
 
 
 '''
