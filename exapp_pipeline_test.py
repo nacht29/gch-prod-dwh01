@@ -56,7 +56,7 @@ SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
 '''
 OUTPUT FILE CONFIG
 '''
-SLICE_BY_ROWS = 500000 - 1
+SLICE_BY_ROWS = 1000000 - 1
 
 DEPARTMENTS = {
 	'1': '1 - GROCERY',
@@ -239,9 +239,10 @@ def load_gdrive(excel_buffer, out_filename:str):
 			supportsAllDrives=True
 	).execute()
 
+	# get dup file id
 	dup_files = results.get('files')
-	log.info(f'dup_files {dup_files}')
-	
+
+	# xlsx file metadata
 	file_metadata = {
 		'name': out_filename,
 		'parents': POSSALES_RL_FOLDER_ID,
@@ -254,14 +255,23 @@ def load_gdrive(excel_buffer, out_filename:str):
 		resumable=True
 	)
 
-	# Upload to Google Drive with shared drive support
-	service.files().create(
-		body=file_metadata,
-		media_body=media,
-		fields='id',
-		supportsAllDrives=True
-	).execute()
+	# update or create files
+	if dup_files:
+		log.info(f"{datetime.now()} Updating {dup_files[0]['name']}")
+		dup_file_id = dup_files[0]['id']
+		file = service.files().update(
+			fileId=dup_file_id,
+			media_body=media,
+			supportsAllDrives=True
+		).execute()
 
+	else:
+		service.files().create(
+			body=file_metadata,
+			media_body=media,
+			fields='id',
+			supportsAllDrives=True
+		).execute()
 
 '''
 Main process (pipeline)
