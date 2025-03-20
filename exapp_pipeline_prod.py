@@ -244,7 +244,7 @@ def load_gdrive(excel_buffer, out_filename:str):
 	# xlsx file metadata
 	file_metadata = {
 		'name': out_filename,
-		'parents': POSSALES_RL_FOLDER_ID,
+		'parents': [dept_folder_id],
 		'driveId': SHARED_DRIVE_ID
 	}
 
