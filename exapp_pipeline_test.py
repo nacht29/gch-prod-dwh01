@@ -285,14 +285,14 @@ def exapp_pipeline_test():
 			Querying
 			'''
 			with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
-				log.info(f'{datetime.now()} Query: {script}')
+				log.info(f'\n\n{datetime.now()} Query: {script}')
 				query = ' '.join([line for line in cur_script])
 				results_df = bq_client.query(query).to_dataframe()
 				log.info(f'Results: {results_df.shape}')
 
 				'''
 				Slicing
-				'''	
+				'''
 
 				# slice the results of eac script
 				for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
@@ -305,6 +305,7 @@ def exapp_pipeline_test():
 					'''
 					Write to Excel
 					'''
+
 					# init binary buffer for xlsx file
 					log.info(f'{datetime.now()} creating xlsx binary for {out_filename}')
 					excel_buffer = BytesIO()
@@ -317,11 +318,12 @@ def exapp_pipeline_test():
 					'''
 					Loading
 					'''
+
 					# load to BQ
 					try:
 						log.info(f'{datetime.now()} loading {out_filename} to Bucket')
 						load_bucket(excel_buffer, out_filename)
-						log.info(f'{datetime.now()} {out_filename} loaded')
+						log.info(f'{datetime.now()} {out_filename} loaded to Bucket')
 					except Exception as error:
 						log.error(f'Failed to load to Bucket.\n\n{error}')
 						raise
@@ -330,12 +332,12 @@ def exapp_pipeline_test():
 					try:
 						log.info(f'{datetime.now()} loading {out_filename} to Drive')
 						load_gdrive(excel_buffer, out_filename)
-						log.info(f'{datetime.now()} {out_filename} loaded')
+						log.info(f'{datetime.now()} {out_filename} loaded to Drive\n')
 					except Exception as error:
 						log.error(f'Failed to load to Drive.\n\n{error}')
 						raise
 
-					# close the buffer
+					# close the excel buffer
 					excel_buffer.close()
 					
 		except Exception as error:
