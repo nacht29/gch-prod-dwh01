@@ -214,5 +214,4 @@ def exapp_pipeline_test():
 		except Exception as error:
 			raise
 
-if __name__ == '__exapp_piepline_test__':
-	exapp_pipeline_test()
+exapp_pipeline_test()
