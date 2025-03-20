@@ -1,6 +1,5 @@
 import os
 import calendar
-import pyxlsb
 import logging as log
 import pandas as pd
 from datetime import date, datetime, timezone, timedelta
@@ -163,7 +162,7 @@ def get_month_year() -> tuple:
 # outfile:	possales_rl_{dept}_{date}_{ver}_{outfile_type}
 # e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.xlsx
 def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
-	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
+	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}{outfile_type}"
 	return file_name
 
 '''

@@ -1,6 +1,6 @@
 import os
-import logging as log
 import calendar
+import logging as log
 import pandas as pd
 from datetime import date, datetime, timezone, timedelta
 from google.cloud import bigquery as bq
