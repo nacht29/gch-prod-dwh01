@@ -2,11 +2,13 @@ import os
 import calendar
 import logging as log
 import pandas as pd
+from io import BytesIO
 from datetime import date, datetime, timezone, timedelta
 from google.cloud import bigquery as bq
 from google.cloud import storage
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 from google.api_core.exceptions import Forbidden, NotFound
 
 '''
@@ -49,10 +51,12 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
 # POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
 
+SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
+
 '''
 OUTPUT FILE CONFIG
 '''
-SLICE_BY_ROWS = 500000 - 1
+SLICE_BY_ROWS = 1000000 - 1
 
 DEPARTMENTS = {
 	'1': '1 - GROCERY',
@@ -62,8 +66,6 @@ DEPARTMENTS = {
 	'5': '5 - HEALTH & BEAUTY',
 	'6': '6 - GMS'
 }
-
-DELIMITER = ','
 
 '''
 Logging
@@ -81,9 +83,9 @@ log_file_fullpath = f'{LOG_DIR}/{log_file_name}'
 
 # config logging
 log.basicConfig(
-    filename=log_file_fullpath,
-    level=log.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+	filename=log_file_fullpath,
+	level=log.INFO,
+	format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # log to console for debugging
@@ -93,48 +95,10 @@ log.getLogger().addHandler(console_handler)
 
 log.info('exapp_pipeline_prod --initiated')
 
-def main():
-	try:
-		log.info('Query data from BigQuery: running')
-		query_data()
-		log.info('Query data from BigQuery: success')
-	except Exception as error:
-		log.error(f'Query data from BigQuery: failed\n\n{error}')
-		export_logs()
-		remove_outfiles()
-		log.info('Pipeline failed at query_data')
-		raise
-
-	try:
-		log.info('Load data to GCS Bucket: running')
-		load_bucket()
-		log.info('Load data to GCS Bucket: success')
-	except Exception as error:
-		log.error(f'Load data to GCS Bucket: failed\n\n{error}')
-		export_logs()
-		remove_outfiles()
-		log.info('Pipeline failed at load_bucket')
-		raise
-
-	try:
-		log.info('Load data to Drive: running')
-		load_gdrive()
-		log.info('Load data to Drive: success')
-	except Exception as error:
-		log.error(f'Load data to Drive: failed\n\n{error}')
-		export_logs()
-		remove_outfiles()
-		log.info('Pipeline failed at load_gdrive')
-		raise
-
-	export_logs()
-	remove_outfiles()
-	log.info('Pipeline success')
 
 '''
 Helper functions
 '''
-
 # get the names of specific file types in a dir
 # if dir = None			: get from root
 # if file_type = None	: get all file names
@@ -166,34 +130,8 @@ def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
 	return file_name
 
 '''
-Main processes
+Load Bucket
 '''
-
-# get data from BQ and export as CSV to outfiles/
-# slices data by million rows
-def query_data():
-	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
-
-	# run each script
-	for script in sql_scripts:
-		with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
-			log.info(f'Current SQL query: {script}')
-			query = ' '.join([line for line in cur_script])
-			results_df = bq_client.query(query).to_dataframe()
-			log.info(f'{datetime.now().time} Results: {results_df.shape}')
-
-			# slice the results of eac script
-			for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
-				# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
-				file_ver = cur_row // SLICE_BY_ROWS + 1
-				# get subset of full query result (sliced by rows)
-				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
-				out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
-				log.info(f'Downloading: {out_filename}')
-				# upload subset as excel
-				subset.to_excel(f'{OUTFILES_DIR}/{out_filename}', index=False, header=True)
-				# subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
-
 # generate path to GCS Bucket for the file
 # detects Year > Month > Dept
 def filepath_in_bucket(file_name:str):
@@ -204,19 +142,20 @@ def filepath_in_bucket(file_name:str):
 	dept_name = all_dept[dept_id]
 	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
-# load xlsx files to bucket
-def load_bucket():
+# write excel binary to bucket
+def load_bucket(excel_buffer, out_filename:str):
+	path_in_bucket = filepath_in_bucket(out_filename)
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
+	blob = bucket.blob(path_in_bucket)
+	blob.upload_from_file(
+		excel_buffer,
+		content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+	)
 
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
+'''
+Load Google Drive
+'''
 
-	for xlsx_file in csv_files:
-		path_in_bucket = f'{filepath_in_bucket(xlsx_file)}'
-		# bucket.blob(path_in_bucket).upload()
-		blob = bucket.blob(path_in_bucket)
-		blob.upload_from_filename(f'{OUTFILES_DIR}/{xlsx_file}')
-
-# detect and dynamically create folders for file in Drive
 def drive_autodetect_folders(service, parent_folder_id:str, folder_name:str):
 	'''
 	# searches if folder exists in drive
@@ -277,94 +216,131 @@ def get_file_dept(file_name:str) -> str:
 	# return corresponding department name accoridng to department number
 	return dept[file_name[0]]
 
-# load xlsx file to Drive
-def load_gdrive():
-	# authenticate
+
+def load_gdrive(excel_buffer, out_filename:str):
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
 	service = build('drive', 'v3', credentials=creds)
-	month, year = get_month_year()
 
-	# auto detect folders - create folder if destination folder does not exists
 	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
+	dept = get_file_dept(out_filename)
+	dept_folder_id = drive_autodetect_folders(service, month_folder_id, dept)
 
-	# get name of all xlsx files to be loaded
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
+	query = f"""
+	'{dept_folder_id}' in parents
+	and name = '{out_filename}'
+	and trashed=false
+	"""
 
-	# process each xlsx file
-	for xlsx_file in csv_files:
-		# detect if dept folder for current xlsx file exists
-		# if not, create the folder
-		# return dept folder id
-		dept = get_file_dept(xlsx_file)
-		dept_folder_id = drive_autodetect_folders(service, month_folder_id, dept)
+	# execute the query
+	results = service.files().list(
+			q=query,
+			fields='files(id, name)',
+			supportsAllDrives=True
+	).execute()
 
-		# get all files in dept folder
-		query = f"""
-		'{dept_folder_id}' in parents
-		and name = '{xlsx_file}'
-		and trashed=false
-		"""
+	# get dup file id
+	dup_files = results.get('files')
 
-		# execute the query
-		results = service.files().list(
-				q=query,
-				fields='files(id, name)',
-				supportsAllDrives=True,
-				includeItemsFromAllDrives=True
+	# xlsx file metadata
+	file_metadata = {
+		'name': out_filename,
+		'parents': POSSALES_RL_FOLDER_ID,
+		'driveId': SHARED_DRIVE_ID
+	}
+
+	media = MediaIoBaseUpload(
+		excel_buffer,
+		mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		resumable=True
+	)
+
+	# update or create files
+	if dup_files:
+		log.info(f"{datetime.now()} Updating {dup_files[0]['name']}")
+		dup_file_id = dup_files[0]['id']
+		file = service.files().update(
+			fileId=dup_file_id,
+			media_body=media,
+			supportsAllDrives=True
 		).execute()
-	
-		dup_files = results.get('files')
-		log.info(f'dup_files {dup_files}')
 
-		# remove duplicates and write the latest file to Drive
-		if dup_files:
-			log.info(f"Updating {dup_files[0]['name']}")
-			dup_file_id = dup_files[0]['id']
-			file = service.files().update(
-				fileId=dup_file_id,
-				media_body=f'{OUTFILES_DIR}/{xlsx_file}',
-				supportsAllDrives=True
-			).execute()
-
-		else:
-			file_metadata = {
-				'name': xlsx_file,
-				'parents': [dept_folder_id]
-			}
-
-			file = service.files().create(
-				body=file_metadata,
-				media_body=f'{OUTFILES_DIR}/{xlsx_file}',
-				supportsAllDrives=True
-			).execute()
+	else:
+		service.files().create(
+			body=file_metadata,
+			media_body=media,
+			fields='id',
+			supportsAllDrives=True
+		).execute()
 
 '''
-Outfiles and logs
+Main process (pipeline)
 '''
+def exapp_pipeline_test():
+	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
 
-# remove all xlsx files from local
-def remove_outfiles():
-	log.info('Removing outfiles...')
-	try:
-		
-		csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
-		for xlsx_file in csv_files:
-			os.remove(f'{OUTFILES_DIR}/{xlsx_file}')
-	except Exception:
-		raise
-	
-def export_logs():
-	bucket = bucket_client.get_bucket('gch_extract_drive_01')
-	month, year = get_month_year()
-	dir_path_in_bucket = f'supply_chain/possales_rl/airflow-logs/{year}/{month}'
+	for script in sql_scripts:
+		try:
+			'''
+			Querying
+			'''
+			with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
+				log.info(f'\n\n{datetime.now()} Query: {script}')
+				query = ' '.join([line for line in cur_script])
+				results_df = bq_client.query(query).to_dataframe()
+				log.info(f'Results: {results_df.shape}')
 
-	log.info('Exporting logs...')
-	log_files = file_type_in_dir(LOG_DIR, '.txt')
-	for log_file in log_files:
-		path_in_bucket = f'{dir_path_in_bucket}/{log_file}'
-		blob = bucket.blob(path_in_bucket)
-		blob.upload_from_filename(f'{LOG_DIR}/{log_file}')
+				'''
+				Slicing
+				'''
 
-if __name__ == '__main__':
-	main()
+				# slice the results of eac script
+				for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
+					# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
+					file_ver = cur_row // SLICE_BY_ROWS + 1
+					# get subset of full query result (sliced by rows)
+					subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
+					out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
+
+					'''
+					Write to Excel
+					'''
+
+					# init binary buffer for xlsx file
+					log.info(f'{datetime.now()} creating xlsx binary for {out_filename}')
+					excel_buffer = BytesIO()
+					with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+						subset.to_excel(writer, index=False, header=True)
+					excel_buffer.seek(0)
+					datetime.now()
+					log.info(f'{datetime.now()} {out_filename} binary created')
+
+					'''
+					Loading
+					'''
+
+					# load to BQ
+					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Bucket')
+						load_bucket(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded to Bucket')
+					except Exception as error:
+						log.error(f'Failed to load to Bucket.\n\n{error}')
+						raise
+					
+					# load to drive
+					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Drive')
+						load_gdrive(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded to Drive\n')
+					except Exception as error:
+						log.error(f'Failed to load to Drive.\n\n{error}')
+						raise
+
+					# close the excel buffer
+					excel_buffer.close()
+					
+		except Exception as error:
+			raise
+
+exapp_pipeline_test()
