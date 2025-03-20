@@ -274,6 +274,22 @@ def load_gdrive(excel_buffer, out_filename:str):
 		).execute()
 
 '''
+Log backups
+'''
+def export_logs():
+	bucket = bucket_client.get_bucket('gch_extract_drive_01')
+	month, year = get_month_year()
+	dir_path_in_bucket = f'supply_chain/possales_rl/airflow-logs/{year}/{month}'
+
+	log.info('Exporting logs...')
+	log_files = file_type_in_dir(LOG_DIR, '.txt')
+	for log_file in log_files:
+		path_in_bucket = f'{dir_path_in_bucket}/{log_file}'
+		blob = bucket.blob(path_in_bucket)
+		blob.upload_from_filename(f'{LOG_DIR}/{log_file}')
+
+
+'''
 Main process (pipeline)
 '''
 def exapp_pipeline_prod():
@@ -325,6 +341,7 @@ def exapp_pipeline_prod():
 						load_bucket(excel_buffer, out_filename)
 						log.info(f'{datetime.now()} {out_filename} loaded to Bucket')
 					except Exception as error:
+						export_logs()
 						log.error(f'Failed to load to Bucket.\n\n{error}')
 						raise
 					
@@ -334,6 +351,7 @@ def exapp_pipeline_prod():
 						load_gdrive(excel_buffer, out_filename)
 						log.info(f'{datetime.now()} {out_filename} loaded to Drive\n')
 					except Exception as error:
+						export_logs()
 						log.error(f'Failed to load to Drive.\n\n{error}')
 						raise
 
@@ -341,6 +359,7 @@ def exapp_pipeline_prod():
 					excel_buffer.close()
 					
 		except Exception as error:
+			export_logs()
 			raise
 
 exapp_pipeline_prod()
