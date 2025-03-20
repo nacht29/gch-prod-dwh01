@@ -259,8 +259,7 @@ def load_gdrive(excel_buffer, out_filename:str):
 		body=file_metadata,
 		media_body=media,
 		fields='id',
-		supportsAllDrives=True,
-		includeItemsFromAllDrives=True
+		supportsAllDrives=True
 	).execute()
 
 
