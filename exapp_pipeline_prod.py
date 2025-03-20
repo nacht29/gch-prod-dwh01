@@ -48,7 +48,7 @@ POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the a
 '''
 OUTPUT FILE CONFIG
 '''
-SLICE_BY_ROWS = 1000000 - 1
+SLICE_BY_ROWS = 500000 - 1
 
 DEPARTMENTS = {
 	'1': '1 - GROCERY',
@@ -161,7 +161,7 @@ def get_month_year() -> tuple:
 # generate file name based on naming concentions
 # infile:	possales_rl_{dept}.sql
 # outfile:	possales_rl_{dept}_{date}_{ver}_{outfile_type}
-# e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.xlsb
+# e.g. possales_rl_q.sql -> possales_rl_1_2025-03-16_2.xlsx
 def gen_file_name(infile_name:str, infile_type:str, outfile_type:str, ver:int):
 	file_name = f"{infile_name.replace(infile_type,'')}_{date.today()}_{ver}.{outfile_type}"
 	return file_name
@@ -190,10 +190,10 @@ def query_data():
 				file_ver = cur_row // SLICE_BY_ROWS + 1
 				# get subset of full query result (sliced by rows)
 				subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
-				out_filename = gen_file_name(script, '.sql', '.xlsb', file_ver)
+				out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
 				log.info(f'Downloading: {out_filename}')
 				# upload subset as excel
-				subset.to_excel(f'{OUTFILES_DIR}/{out_filename}', engine='pyxlsb', index=False, header=True)
+				subset.to_excel(f'{OUTFILES_DIR}/{out_filename}', index=False, header=True)
 				# subset.to_csv(f'{OUTFILES_DIR}/{out_filename}', sep=DELIMITER, encoding='utf-8', index=False, header=True)
 
 # generate path to GCS Bucket for the file
@@ -201,16 +201,16 @@ def query_data():
 def filepath_in_bucket(file_name:str):
 	month, year = get_month_year()
 	all_dept = DEPARTMENTS
-	# possales_r1_10_2025-03-11.xlsb -> 10_2025-03-11.xlsb -> 10
+	# possales_r1_10_2025-03-11.xlsx -> 10_2025-03-11.xlsx -> 10
 	dept_id = file_name.replace('possales_rl_', '').split('_')[0]
 	dept_name = all_dept[dept_id]
 	return f'supply_chain/possales_rl/{year}/{month}/{dept_name}/{file_name}'
 
-# load xlsb files to bucket
+# load xlsx files to bucket
 def load_bucket():
 	bucket = bucket_client.get_bucket('gch_extract_drive_01')
 
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsb')
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 
 	for xlsx_file in csv_files:
 		path_in_bucket = f'{filepath_in_bucket(xlsx_file)}'
@@ -279,7 +279,7 @@ def get_file_dept(file_name:str) -> str:
 	# return corresponding department name accoridng to department number
 	return dept[file_name[0]]
 
-# load xlsb file to Drive
+# load xlsx file to Drive
 def load_gdrive():
 	# authenticate
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
@@ -290,12 +290,12 @@ def load_gdrive():
 	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
 
-	# get name of all xlsb files to be loaded
-	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsb')
+	# get name of all xlsx files to be loaded
+	csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 
-	# process each xlsb file
+	# process each xlsx file
 	for xlsx_file in csv_files:
-		# detect if dept folder for current xlsb file exists
+		# detect if dept folder for current xlsx file exists
 		# if not, create the folder
 		# return dept folder id
 		dept = get_file_dept(xlsx_file)
@@ -345,12 +345,12 @@ def load_gdrive():
 Outfiles and logs
 '''
 
-# remove all xlsb files from local
+# remove all xlsx files from local
 def remove_outfiles():
 	log.info('Removing outfiles...')
 	try:
 		
-		csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsb')
+		csv_files = file_type_in_dir(OUTFILES_DIR, '.xlsx')
 		for xlsx_file in csv_files:
 			os.remove(f'{OUTFILES_DIR}/{xlsx_file}')
 	except Exception:
