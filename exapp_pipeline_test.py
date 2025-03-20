@@ -236,8 +236,7 @@ def load_gdrive(excel_buffer, out_filename:str):
 	results = service.files().list(
 			q=query,
 			fields='files(id, name)',
-			supportsAllDrives=True,
-			includeItemsFromAllDrives=True
+			supportsAllDrives=True
 	).execute()
 
 	dup_files = results.get('files')
