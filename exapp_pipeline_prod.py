@@ -361,4 +361,8 @@ def exapp_pipeline_prod():
 			export_logs()
 			raise
 
-exapp_pipeline_prod()
+	export_logs()
+
+
+if __name__ == '__main__':
+	exapp_pipeline_prod()
