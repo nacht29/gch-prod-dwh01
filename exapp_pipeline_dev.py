@@ -28,11 +28,11 @@ LOCAL FILE PATHS
 # SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
 SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
 
-# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
+# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space/giant/outfiles'
 OUTFILES_DIR = '/home/yanzhe/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space/giant/py_log'
 PY_LOGS_DIR = '/home/yanzhe/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
