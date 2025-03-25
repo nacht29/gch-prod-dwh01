@@ -85,7 +85,7 @@ def get_drive_file_id(service, parent_folder_id: str, is_folder: bool):
 # read data from a CSV file in drive
 # write the read data into into binary buffer for CSV
 # add location and date columns
-def read_csv_from_drive(service, file_metadata):
+def process_csv_from_drive(service, file_metadata):
 	try:
 		request = service.files().get_media(fileId=file_metadata['id'])
 		csv_buffer = io.BytesIO()
@@ -123,7 +123,7 @@ def read_files_from_drive():
 	for folder in yy_mm_folders:
 		csv_files = get_drive_file_id(service, folder['id'], False)
 		for csv_file in csv_files:
-			results_df = read_csv_from_drive(service, csv_file)
+			results_df = process_csv_from_drive(service, csv_file)
 			main_df = pd.concat([main_df, results_df], ignore_index=True)
 
 	return main_df
