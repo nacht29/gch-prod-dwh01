@@ -13,7 +13,8 @@ from googleapiclient.errors import HttpError
 '''
 Credentials
 '''
-JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '../json-keys/gch-prod-dwh01-data-pipeline.json'
 # JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
@@ -109,11 +110,9 @@ def process_csv_from_drive(service, file_metadata):
 
 		# add location and date
 		loc, file_date = get_loc_date(file_metadata['name'])
-		file_date = pd.to_datetime(file_date)
-		log.info(f'location: {loc}, date: {file_date}')
+
 		results_df['location'] = loc
 		results_df['date'] = file_date
-		log.info(f'processed: {file_metadata['name']}')
 
 		return results_df
 
@@ -130,24 +129,33 @@ def read_process_files_from_drive():
 	main_df = pd.DataFrame()
 	yy_mm_folders = get_drive_file_id(service, SRP_PARENT_FOLDER_ID, True)
 
+	file_proccessed = 0
 	for folder in yy_mm_folders:
-		csv_files = get_drive_file_id(service, folder['id'], False)
-		for csv_file in csv_files:
-			results_df = process_csv_from_drive(service, csv_file)
-			main_df = pd.concat([main_df, results_df], ignore_index=True)
+		if folder['name'][-6] == '202408':
+			csv_files = get_drive_file_id(service, folder['id'], False)
+			for csv_file in csv_files:
+				results_df = process_csv_from_drive(service, csv_file)
+				main_df = pd.concat([main_df, results_df], ignore_index=True)
+				file_proccessed += 1
+				log.info(f'\n\nfile_processed: {file_proccessed}\n\n')
 
 	return main_df
 
-def load_table(df, table_suffix: str):
-	table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{table_suffix}'
-	job_config = bq.LoadJobConfig(write_disposition='WRITE_TRUNCATE', autodetect=True)
-	job = bq_client.load_table_from_dataframe(df, table_ref, job_config=job_config)
-	return job.result()
+# def load_table(df, table_suffix: str):
+# 	table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{table_suffix}_copy2'
+# 	job_config = bq.LoadJobConfig(write_disposition='WRITE_APPEND', autodetect=True)
+# 	job = bq_client.load_table_from_dataframe(df, table_ref, job_config=job_config)
+# 	return job.result()
 
-def load_bq(df):
-	for location in df['location'].unique():
-		location_df = df[df['location'] == location]
-		load_table(location_df, location)
+def load_to_bq(main_df):
+	file_pushed = 0
+	for location in main_df['location'].unique():
+		location_df = main_df[main_df['location'] == location]
+		table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{location}_copy2'
+		job_config = bq.LoadJobConfig(write_disposition='WRITE_APPEND', autodetect=True)
+		job = bq_client.load_table_from_dataframe(location_df, table_ref, job_config=job_config)
+		file_pushed += 1
+		print(f'file pushed: {file_pushed}')
 
 def main():
 	main_df = read_process_files_from_drive()
@@ -155,7 +163,7 @@ def main():
 	if not main_df.empty:
 		main_df['date'] = pd.to_datetime(main_df['date'].astype(str)).dt.date
 		main_df.columns = [snake_case(col) for col in main_df.columns]
-		load_bq(main_df)
+		load_to_bq(main_df)
 	else:
 		log.info("No data processed")
 
