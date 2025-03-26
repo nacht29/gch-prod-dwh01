@@ -287,7 +287,6 @@ def export_logs():
 		blob = bucket.blob(path_in_bucket)
 		blob.upload_from_filename(f'{LOG_DIR}/{log_file}')
 
-
 '''
 Main process (pipeline)
 '''
