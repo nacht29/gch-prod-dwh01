@@ -1,15 +1,14 @@
 import os
 import calendar
-import logging as log
 import pandas as pd
+import logging as log
 from io import BytesIO
-from datetime import date, datetime, timezone, timedelta
-from google.cloud import bigquery as bq
 from google.cloud import storage
+from google.cloud import bigquery as bq
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from google.api_core.exceptions import Forbidden, NotFound
+from datetime import datetime, timezone, timedelta
 
 '''
 DATETIME constants
@@ -32,16 +31,12 @@ bucket_client = storage.Client(credentials=credentials, project=credentials.proj
 '''
 LOCAL FILE PATHS
 '''
-# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
 SQL_SCRIPTS_PATH = 'sql-scripts/itemmaster'
 
-
-OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/outfiles'
-# OUTFILES_DIR = '/home/yanzhe/outfiles'
+OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
-# PY_LOGS_DIR = '/home/yanzhe/py_log'
+PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''

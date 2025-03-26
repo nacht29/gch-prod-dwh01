@@ -14,7 +14,6 @@ Credentials
 # JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
 JSON_KEYS_PATH = '../json-keys/gch-prod-dwh01-data-pipeline.json'
 # JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
-SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # set up Bucket credentials to load CSV to bucket
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
