@@ -13,8 +13,8 @@ from googleapiclient.errors import HttpError
 '''
 Credentials
 '''
-# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # set up Bucket credentials to load CSV to bucket
@@ -27,8 +27,8 @@ SRP_PARENT_FOLDER_ID = '10VMUdmAQXPVZwxjB-LNjIC0bDgslkl0l'
 '''
 Local files
 '''
-# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
-PY_LOGS_DIR = '/home/yanzhe/py_log'
+PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/py_log'
+# PY_LOGS_DIR = '/home/yanzhe/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
@@ -51,6 +51,13 @@ log.basicConfig(
 	level=log.INFO,
 	format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+# log to console for debugging
+console_handler = log.StreamHandler()
+console_handler.setLevel(log.INFO)
+log.getLogger().addHandler(console_handler)
+
+log.info(f'{datetime.now()} srp_agg_data --initiated')
 
 '''
 Helper functions
@@ -98,17 +105,19 @@ def process_csv_from_drive(service, file_metadata):
 				break
 
 		csv_buffer.seek(0)  # Reset buffer position
-		results_df = pd.read_csv(csv_buffer)
+		results_df = pd.read_csv(csv_buffer, thousands=',', decimal='.')
 
 		# add location and date
 		loc, file_date = get_loc_date(file_metadata['name'])
+		file_date = pd.to_datetime(file_date)
+		log.info(f'location: {loc}, date: {file_date}')
 		results_df['location'] = loc
 		results_df['date'] = file_date
 
 		return results_df
 
 	except HttpError as error:
-		log.info(f"Error processing {file_metadata['name']}: {error}")
+		log.error(f"Error processing {file_metadata['name']}: {error}")
 		return pd.DataFrame()
 
 # iterates through each folder, and in each folder each CSV
