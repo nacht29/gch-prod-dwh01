@@ -19,7 +19,7 @@ SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
 bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
 
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 SRP_PARENT_FOLDER_ID = '10VMUdmAQXPVZwxjB-LNjIC0bDgslkl0l'
 
 def get_loc_date(file_name):
@@ -54,46 +54,56 @@ def process_csv_from_drive(service, file_metadata):
 	except Exception as error:
 		raise
 
-def get_drive_file_id(service, parent_folder_id: str, is_folder: bool):
-	# mimetype ='application/vnd.google-apps.folder' if is_folder == True
-	# else mimetype !='application/vnd.google-apps.folder' 
+def drive_get_fileID_by_name(service, parent_folder_id: str, file_name: str):
 	query = f"""
 	'{parent_folder_id}' in parents
-	and mimeType{'=' if is_folder else '!='}'application/vnd.google-apps.folder'
+	and name = '{file_name}'
 	and trashed=false
 	"""
+	
+	try:
+		response = service.files().list(
+			q=query,
+			fields='files(id, modifiedTime)',
+			orderBy='modifiedTime desc',
+			pageSize=1,
+			supportsAllDrives=True,
+			includeItemsFromAllDrives=True,
+		).execute()
+		
+		files = response.get('files', [])
+		if files:
+			return files[0]['id']
+		else:
+			return None
+			
+	except Exception:
+		return None
 
-	request = service.files().list(
-		q=query,
-		fields='files(id, name)',
-		supportsAllDrives=True,
-		includeItemsFromAllDrives=True
-	).execute()
+def drive_get_folderID_by_name(service, parent_folder_id: str, folder_name: str):
+	query = f"""
+	'{parent_folder_id}' in parents
+	and name = '{folder_name}'
+	and mimeType = 'application/vnd.google-apps.folder'
+	and trashed=false
+	"""
+	
+	try:
+		response = service.files().list(
+			q=query,
+			fields='files(id)',
+			supportsAllDrives=True,
+			includeItemsFromAllDrives=True,
+		).execute()
+		
+		folders = response.get('files', [])
+		return folders[0]['id'] if folders else None
+		
+	except Exception:
+		return None
 
-	return request.get('files', [])
-
-
-def read_process_files_from_drive():
-	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
-	service = build('drive', 'v3', credentials=creds)
-
-	main_df = pd.DataFrame()
-	yy_mm_folders = get_drive_file_id(service, SRP_PARENT_FOLDER_ID, True)
-
-	file_proccessed = 0
-	for folder in yy_mm_folders:
-		if folder['name'].endswith('202408'):
-			csv_files = get_drive_file_id(service, folder['id'], False)
-			for csv_file in csv_files:
-				results_df = process_csv_from_drive(service, csv_file)
-				main_df = pd.concat([main_df, results_df], ignore_index=True)
-				file_proccessed += 1
-				print(f'\n\nfile_processed: {file_proccessed}\n\n')
-
-	return main_df
-
-def load_table(df, table_suffix: str):
-	table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{table_suffix}_copy3'
+def load_to_bq(df, table_suffix: str):
+	table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{table_suffix}'
 	job_config = bq.LoadJobConfig(
 		write_disposition='WRITE_APPEND',
 		autodetect=True
@@ -114,6 +124,8 @@ print(f'{datetime.datetime.now()} exit expected_df\n\n')
 
 date_loc_missing = [('2024-08-01', 1216), ('2024-08-01', 1221), ('2024-08-01', 1227), ('2024-08-01', 1228), ('2024-08-02', 1216), ('2024-08-02', 1221), ('2024-08-02', 1227),('2024-08-02', 1228), ('2024-08-03', 1216), ('2024-08-03', 1221), ('2024-08-03', 1227), ('2024-08-03', 1228), ('2024-08-04', 1216), ('2024-08-04', 1221), ('2024-08-04', 1227), ('2024-08-04', 1228), ('2024-08-05', 1216), ('2024-08-05', 1221), ('2024-08-05', 1227), ('2024-08-05', 1228), ('2024-08-06', 1216), ('2024-08-06', 1221), ('2024-08-06', 1227), ('2024-08-06', 1228), ('2024-09-01', 1216), ('2024-09-01', 1227), ('2024-09-01', 1228), ('2024-09-02', 1216), ('2024-09-02', 1227), ('2024-09-02', 1228), ('2024-09-03', 1216), ('2024-09-03', 1227), ('2024-09-03', 1228), ('2024-09-04', 1216), ('2024-09-04', 1227), ('2024-09-04', 1228), ('2024-09-05', 1216), ('2024-09-05', 1227), ('2024-09-05', 1228), ('2024-09-06', 1216), ('2024-09-06', 1227), ('2024-09-06', 1228), ('2024-09-07', 1216), ('2024-09-07', 1227), ('2024-09-07', 1228), ('2024-09-08', 1216), ('2024-09-08', 1227), ('2024-09-08', 1228), ('2024-09-09', 1216), ('2024-09-09', 1227), ('2024-09-09', 1228), ('2024-09-10', 1216), ('2024-09-10', 1227), ('2024-09-10', 1228), ('2024-09-11', 1216), ('2024-09-11', 1227), ('2024-09-11', 1228), ('2024-09-12', 1216), ('2024-09-12', 1227), ('2024-09-12', 1228), ('2024-09-13', 1216), ('2024-09-13', 1227), ('2024-09-13', 1228), ('2024-09-14', 1216), ('2024-09-14', 1227), ('2024-09-14', 1228), ('2024-09-15', 1216), ('2024-09-15', 1227), ('2024-09-15', 1228), ('2024-09-16', 1216), ('2024-09-16', 1227), ('2024-09-16', 1228), ('2024-09-17', 1216), ('2024-09-17', 1227), ('2024-09-17', 1228), ('2024-09-18', 1216), ('2024-09-18', 1227), ('2024-09-18', 1228), ('2024-09-19', 1216), ('2024-09-19', 1227), ('2024-09-19', 1228), ('2024-09-20', 1216), ('2024-09-20', 1227), ('2024-09-20', 1228), ('2024-10-01', 1216), ('2024-10-01', 1217), ('2024-10-01', 1227), ('2024-10-01', 1228), ('2024-10-02', 1216), ('2024-10-02', 1217), ('2024-10-02', 1227), ('2024-10-02', 1228), ('2024-10-03', 1216), ('2024-10-03', 1217), ('2024-10-03', 1227), ('2024-10-04', 1216), ('2024-10-04', 1227), ('2024-10-05', 1216), ('2024-10-05', 1227), ('2024-10-06', 1216), ('2024-10-06', 1227), ('2024-10-07', 1216), ('2024-10-07', 1217), ('2024-10-07', 1227), ('2024-10-08', 1216), ('2024-10-08', 1217), ('2024-10-08', 1227), ('2024-10-09', 1216), ('2024-10-09', 1217), ('2024-10-09', 1227), ('2024-10-10', 1216), ('2024-10-10', 1217), ('2024-10-10', 1227), ('2024-10-11', 1216), ('2024-10-11', 1217), ('2024-10-11', 1227), ('2024-10-12', 1216), ('2024-10-12', 1217), ('2024-10-12', 1227), ('2024-10-13', 1216), ('2024-10-13', 1217), ('2024-10-13', 1227), ('2024-10-14', 1216), ('2024-10-14', 1217), ('2024-10-15', 1216), ('2024-10-15', 1217), ('2024-10-15', 1227)]
 
+after_process = []
+
 def main():
 	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
 	service = build('drive', 'v3', credentials=creds)
@@ -123,12 +135,37 @@ def main():
 		folder_name = f'SRP_{date_str[:6]}'
 		file_name = f'SRP_{mis_loc}_{date_str}.csv'
 
-		yymm_folder_id = get_drive_file_id(service, SRP_PARENT_FOLDER_ID, True)
+		yymm_folder_id = drive_get_folderID_by_name(service, SRP_PARENT_FOLDER_ID, folder_name)
 
-		if yymm_folder_id == []:
-			print(f'\n\n{folder_name} - {file_name} cannot be found')
-			break
-		print(yymm_folder_id)
+		# if yymm_folder_id == []:
+		# 	print(f'\n\n{folder_name} - {file_name} cannot be found')
+		# 	break
+
+		csv_file_metadata = drive_get_fileID_by_name(service, yymm_folder_id, file_name)
+		results_df = process_csv_from_drive(service, csv_file_metadata)
+
+		# delete duplicates
+		delete_dup_query = f"""
+		DELETE FROM `gch-prod-dwh01.srp_data.srp_possales_{mis_loc}_copy2`
+		WHERE date = '{mis_date}'
+		"""
+		bq_client.query(delete_dup_query).result()
+
+		load_to_bq(results_df, f'{mis_loc}_copy2')
+
+		verify_query = f"""
+		SELECT SUM(total_qty_sales) AS total 
+		FROM `gch-prod-dwh01.srp_data.srp_possales_{mis_loc}_copy2`
+		WHERE date = '{mis_date}'
+		"""
+		verify_df = bq_client.query(verify_query).to_dataframe()
+		
+		if verify_df.empty or verify_df['total'].iloc[0] is None:
+			print(f"Data still missing for {mis_date} {mis_loc}")
+			after_process.append((mis_date, mis_loc, "Verification failed"))
+		else:
+			print(f"Successfully processed {mis_date} {mis_loc}")
+			after_process.append((mis_date, mis_loc, "Success"))
 
 if __name__ == '__main__':
 	main()
