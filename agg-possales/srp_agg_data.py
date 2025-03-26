@@ -113,6 +113,7 @@ def process_csv_from_drive(service, file_metadata):
 		log.info(f'location: {loc}, date: {file_date}')
 		results_df['location'] = loc
 		results_df['date'] = file_date
+		log.info(f'processed: {file_metadata['name']}')
 
 		return results_df
 
