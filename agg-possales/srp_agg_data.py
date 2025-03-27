@@ -111,6 +111,7 @@ def process_csv_from_drive(service, file_metadata):
 		# add location and date
 		loc, file_date = get_loc_date(file_metadata['name'])
 
+		results_df.columns = [snake_case(col) for col in results_df.columns]
 		results_df['location'] = loc
 		results_df['date'] = file_date
 
@@ -131,13 +132,12 @@ def read_process_files_from_drive():
 
 	file_proccessed = 0
 	for folder in yy_mm_folders:
-		if folder['name'][-6] == '202408':
-			csv_files = get_drive_file_id(service, folder['id'], False)
-			for csv_file in csv_files:
-				results_df = process_csv_from_drive(service, csv_file)
-				main_df = pd.concat([main_df, results_df], ignore_index=True)
-				file_proccessed += 1
-				log.info(f'\n\nfile_processed: {file_proccessed}\n\n')
+		csv_files = get_drive_file_id(service, folder['id'], False)
+		for csv_file in csv_files:
+			results_df = process_csv_from_drive(service, csv_file)
+			main_df = pd.concat([main_df, results_df], ignore_index=True)
+			file_proccessed += 1
+			log.info(f'\n\nfile_processed: {file_proccessed}\n\n')
 
 	return main_df
 
@@ -145,17 +145,17 @@ def read_process_files_from_drive():
 # 	table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{table_suffix}_copy2'
 # 	job_config = bq.LoadJobConfig(write_disposition='WRITE_APPEND', autodetect=True)
 # 	job = bq_client.load_table_from_dataframe(df, table_ref, job_config=job_config)
-# 	return job.result()
 
 def load_to_bq(main_df):
 	file_pushed = 0
 	for location in main_df['location'].unique():
 		location_df = main_df[main_df['location'] == location]
-		table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{location}_copy2'
-		job_config = bq.LoadJobConfig(write_disposition='WRITE_APPEND', autodetect=True)
-		job = bq_client.load_table_from_dataframe(location_df, table_ref, job_config=job_config)
+		table_ref = f'gch-prod-dwh01.srp_data.srp_possales_{location}'
+		job_config = bq.LoadJobConfig(write_disposition='WRITE_TRUNCATE', autodetect=True)
+		bq_client.load_table_from_dataframe(location_df, table_ref, job_config=job_config)
 		file_pushed += 1
 		print(f'file pushed: {file_pushed}')
+		
 
 def main():
 	main_df = read_process_files_from_drive()
