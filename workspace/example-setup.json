@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "../python/python-notes"
+		},
+		{
+			"path": "../pygcp"
+		},
+		{
+			"path": "../cloud-space workspace/giant"
+		},
+		{
+			"path": "../cloud-space workspace/mrdiy"
+		}
+	],
+	"settings": {
+		"python.analysis.extraPaths": [
+			"/home/nacht29/.local/lib/python3.12/site-packages"
+		],
+		"python.defaultInterpreterPath": "/usr/bin/python3",
+		"python.analysis.diagnosticSeverityOverrides": {
+			"reportMissingImports": "none"
+		}
+	}
+}
