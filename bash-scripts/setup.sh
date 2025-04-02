@@ -27,17 +27,17 @@ fi
 /home/yanzhe/myvenv/bin/python -m pip install --upgrade \
     google-cloud-bigquery google-api-python-client google-auth \
     google-auth-oauthlib google-auth-httplib2 google-cloud-storage \
-    pydrive db-dtypes xlrd pandas openpyxl pyxlsb\
+    pydrive db-dtypes xlrd pandas openpyxl xlsxwriter\
     google-cloud-bigquery-storage
-    # apache-airflow apache-airflow[gcp]
+    #apache-airflow apache-airflow[gcp]
 
 
 # Run py script
 echo "executing exapp_pipeline"
 # /home/yanzhe/myvenv/bin/activate
 
-/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline.py
-/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline_prod.py
+# /home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/exapp_pipeline_dev.py
+/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/exapp_pipeline_prod.py
 
 #/home/yanzhe/myvenv/bin/deactivate
 
