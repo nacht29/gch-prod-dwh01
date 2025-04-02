@@ -16,22 +16,22 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 '''
 CREDENTIALS	
 '''
-JSON_KEYS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 '''
 LOCAL FILE PATHS
 '''
-SQL_SCRIPTS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/sql-scripts/sc-possalesrl'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
+# SQL_SCRIPTS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
 
-OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/src/exapp_pipeline/outfiles'
-# OUTFILES_DIR = '/home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/outfiles'
+# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/src/exapp_pipeline/outfiles'
+OUTFILES_DIR = '/home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/src/exapp_pipeline/py_log'
-# PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/py_log'
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/gch-prod-dwh01/src/exapp_pipeline/py_log'
+PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/exapp_pipeline/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
