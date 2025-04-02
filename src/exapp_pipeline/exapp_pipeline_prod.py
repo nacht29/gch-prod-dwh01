@@ -1,11 +1,10 @@
 import os
-import json
 import calendar
 import pandas as pd
 import logging as log
 from io import BytesIO
+from google.cloud import storage
 from google.cloud import bigquery as bq
-from google.cloud import storage, secretmanager
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -20,43 +19,27 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 '''
 CREDENTIALS	
 '''
-# Secret Manager client init
-secret_client = secretmanager.SecretManagerServiceClient()
-
-# Secret Manager param
-PROJECT_ID = "gch-prod-dwh01" 
-SECRET_NAME = "projects/1094888877778/secrets/gch-data-pipeline-02-secret/versions/1"
-
-try:
-	# Access the secret
-	response = secret_client.access_secret_version(name=SECRET_NAME)
-	service_account_info = json.loads(response.payload.data.decode("UTF-8"))
-	
-	# Create credentials from the secret
-	credentials = service_account.Credentials.from_service_account_info(
-		service_account_info
-	)
-
-except Exception as e:
-	print(f"Error accessing secret: {str(e)}")
-	raise
+# JSON_KEYS_PATH = 'json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # set up credentials for BQ and Drive to query data
-bq_client = bq.Client(credentials=credentials, project=PROJECT_ID)
-bucket_client = storage.Client(credentials=credentials, project=PROJECT_ID)
+credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
+bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
+bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
 
 '''
 LOCAL FILE PATHS
 '''
-SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/sc-possalesrl'
+# SQL_SCRIPTS_PATH = 'sql-scripts/sc-possalesrl'
 
-OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/outfiles'
-# OUTFILES_DIR = '/home/yanzhe/outfiles'
+OUTFILES_DIR = '/home/yanzhe/outfiles'
+# OUTFILES_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/outfiles'
 os.makedirs(OUTFILES_DIR, exist_ok=True)
 
-PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/py_log'
-# PY_LOGS_DIR = '/home/yanzhe/py_log'
+PY_LOGS_DIR = '/home/yanzhe/py_log'
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space workspace/giant/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 '''
@@ -64,8 +47,8 @@ GOOGLE DRIVE PARAMS
 '''
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
-# POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
-POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
+POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
+# POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
 
 SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
 
@@ -233,8 +216,8 @@ def get_file_dept(file_name:str) -> str:
 
 
 def load_gdrive(excel_buffer, out_filename:str):
-	# creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
-	service = build('drive', 'v3', credentials=credentials)
+	creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT, scopes=SCOPES)
+	service = build('drive', 'v3', credentials=creds)
 
 	year_folder_id = drive_autodetect_folders(service, POSSALES_RL_FOLDER_ID, year)
 	month_folder_id = drive_autodetect_folders(service, year_folder_id, month)
@@ -303,7 +286,6 @@ def export_logs():
 		blob = bucket.blob(path_in_bucket)
 		blob.upload_from_filename(f'{LOG_DIR}/{log_file}')
 
-
 '''
 Main process (pipeline)
 '''
@@ -311,74 +293,73 @@ def exapp_pipeline_prod():
 	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
 
 	for script in sql_scripts:
-		if script == 'possales_rl_6.sql':
-			try:
+		try:
+			'''
+			Querying
+			'''
+			with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
+				log.info(f'\n\n{datetime.now()} Query: {script}')
+				query = ' '.join([line for line in cur_script])
+				results_df = bq_client.query(query).to_dataframe()
+				log.info(f'Results: {results_df.shape}')
+
 				'''
-				Querying
+				Slicing
 				'''
-				with open(f'{SQL_SCRIPTS_PATH}/{script}', 'r') as cur_script:
-					log.info(f'\n\n{datetime.now()} Query: {script}')
-					query = ' '.join([line for line in cur_script])
-					results_df = bq_client.query(query).to_dataframe()
-					log.info(f'Results: {results_df.shape}')
+
+				# slice the results of eac script
+				for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
+					# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
+					file_ver = cur_row // SLICE_BY_ROWS + 1
+					# get subset of full query result (sliced by rows)
+					subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
+					out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
 
 					'''
-					Slicing
+					Write to Excel
 					'''
 
-					# slice the results of eac script
-					for cur_row in range(0, len(results_df), SLICE_BY_ROWS):
-						# file_ver: 1 -> (0,99), 2 -> (100, 199) etc
-						file_ver = cur_row // SLICE_BY_ROWS + 1
-						# get subset of full query result (sliced by rows)
-						subset = results_df.iloc[cur_row:cur_row + SLICE_BY_ROWS]
-						out_filename = gen_file_name(script, '.sql', '.xlsx', file_ver)
+					# init binary buffer for xlsx file
+					log.info(f'{datetime.now()} creating xlsx binary for {out_filename}')
+					excel_buffer = BytesIO()
+					with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+						subset.to_excel(writer, index=False, header=True)
+					excel_buffer.seek(0)
+					datetime.now()
+					log.info(f'{datetime.now()} {out_filename} binary created')
 
-						'''
-						Write to Excel
-						'''
+					'''
+					Loading
+					'''
 
-						# init binary buffer for xlsx file
-						log.info(f'{datetime.now()} creating xlsx binary for {out_filename}')
-						excel_buffer = BytesIO()
-						with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-							subset.to_excel(writer, index=False, header=True)
-						excel_buffer.seek(0)
-						datetime.now()
-						log.info(f'{datetime.now()} {out_filename} binary created')
+					# load to BQ
+					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Bucket')
+						load_bucket(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded to Bucket')
+					except Exception as error:
+						export_logs()
+						log.error(f'Failed to load to Bucket.\n\n{error}')
+						raise
+					
+					# load to drive
+					try:
+						log.info(f'{datetime.now()} loading {out_filename} to Drive')
+						load_gdrive(excel_buffer, out_filename)
+						log.info(f'{datetime.now()} {out_filename} loaded to Drive\n')
+					except Exception as error:
+						export_logs()
+						log.error(f'Failed to load to Drive.\n\n{error}')
+						raise
 
-						'''
-						Loading
-						'''
-
-						# load to BQ
-						try:
-							log.info(f'{datetime.now()} loading {out_filename} to Bucket')
-							load_bucket(excel_buffer, out_filename)
-							log.info(f'{datetime.now()} {out_filename} loaded to Bucket')
-						except Exception as error:
-							export_logs()
-							log.error(f'Failed to load to Bucket.\n\n{error}')
-							raise
-						
-						# load to drive
-						try:
-							log.info(f'{datetime.now()} loading {out_filename} to Drive')
-							load_gdrive(excel_buffer, out_filename)
-							log.info(f'{datetime.now()} {out_filename} loaded to Drive\n')
-						except Exception as error:
-							export_logs()
-							log.error(f'Failed to load to Drive.\n\n{error}')
-							raise
-
-						# close the excel buffer
-						excel_buffer.close()
-						
-			except Exception as error:
-				export_logs()
-				raise
-
+					# close the excel buffer
+					excel_buffer.close()
+					
+		except Exception as error:
 			export_logs()
+			raise
+
+	export_logs()
 
 
 if __name__ == '__main__':
