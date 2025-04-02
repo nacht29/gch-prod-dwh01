@@ -23,6 +23,11 @@ CREDENTIALS
 JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
+# set up credentials for BQ and Drive to query data
+credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
+bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
+bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
+
 '''
 LOCAL FILE PATHS
 '''
@@ -43,7 +48,6 @@ GOOGLE DRIVE PARAMS
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 POSSALES_RL_FOLDER_ID = '1LYITa9mHJZXQyC21_75Ip8_oMwBanfcF' # use this for the actual prod
-# POSSALES_RL_FOLDER_ID = '1iQDbpxsqa8zoEIREJANEWau6HEqPe7hF' # GCH Report > Supply Chain (mock drive)
 
 SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
 
