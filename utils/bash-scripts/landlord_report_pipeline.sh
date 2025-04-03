@@ -34,11 +34,13 @@ fi
 /home/yanzhe/myvenv/bin/python -m pip install --index-url https://test.pypi.org/simple/ --no-deps pygcp==1.1.0
 
 # Run py script
-echo "executing exapp_pipeline"
+echo "executing landlord_report_pipeline_dev"
 
 /home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py .py > /tmp/script_output.log 2>&1
 
 if [ $? -ne 0 ]; then
+	echo "landlord_report_pipeline_dev failed. Sending mail alert..."
+
 	ERROR_TRACEBACK=$(cat /tmp/script_output.log)
 
 	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report_pipeline/alert.py "$ERROR_TRACEBACK"
