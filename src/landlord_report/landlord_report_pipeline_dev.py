@@ -7,18 +7,18 @@ from datetime import datetime, timezone, timedelta
 TIME_ZONE = timezone(timedelta(hours=8))
 START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 
-JSON_KEYS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
-# JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+# JSON_KEYS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/json-keys/gch-prod-dwh01-data-pipeline.json'
 SERVICE_ACCOUNT = JSON_KEYS_PATH
 credentials = service_account.Credentials.from_service_account_file(JSON_KEYS_PATH)
 bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
 bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
 
-SQL_SCRIPTS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/sql-scripts/landlord_report'
-# SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/landlord'
+# SQL_SCRIPTS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/sql-scripts/landlord_report'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/landlord'
 
-PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/src/landlord_report/py_log'
-# PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/landlord_report/py_log'
+# PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/src/landlord_report/py_log'
+PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/landlord_report/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
