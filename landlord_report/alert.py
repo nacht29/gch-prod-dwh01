@@ -7,7 +7,7 @@ send_email(
 	smtp_server='smtp.gmail.com',
 	smtp_port=587,
 	sender_email='yanzhe@cloud-space.co',
-	app_password='',
+	app_password='isss lyjp jyni wfej',
 	receiver_email='wilken@cloud-space.co',
 	cc_emails=['amanda@cloud-space.co']
 )

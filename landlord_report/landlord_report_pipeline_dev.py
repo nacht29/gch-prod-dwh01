@@ -18,7 +18,7 @@ bucket_client = storage.Client(credentials=credentials, project=credentials.proj
 SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/landlord_report/sql-scripts'
 
 # PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/src/landlord_report/py_log'
-PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/landlord_report/py_log
+PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/landlord_report/py_log'
 os.makedirs(PY_LOGS_DIR, exist_ok=True)
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
