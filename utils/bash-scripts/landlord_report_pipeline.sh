@@ -36,4 +36,4 @@ fi
 # Run py script
 echo "executing exapp_pipeline"
 
-/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/src/landlord_report/landlord_report_pipeline_dev.py
+/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py
