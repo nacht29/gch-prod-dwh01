@@ -34,7 +34,6 @@ fi
 /home/yanzhe/myvenv/bin/python -m pip install --index-url https://test.pypi.org/simple/ --no-deps pygcp==1.1.0
 
 # Run py script
-echo "executing exapp_pipeline"
-# /home/yanzhe/myvenv/bin/activate
+echo "executing landlord_report_pipeline"
 
 /home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline/exapp_pipeline_prod.py
