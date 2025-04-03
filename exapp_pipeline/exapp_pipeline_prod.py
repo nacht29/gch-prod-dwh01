@@ -20,7 +20,7 @@ START_DATE = datetime(2025, 3, 11, tzinfo=TIME_ZONE)
 CREDENTIALS	
 '''
 # JSON_KEYS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/utils/json-keys/gch-prod-dwh01-data-pipeline.json'
-JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/utils/json-keys/gch-prod-dwh01-data-pipeline.json'
+JSON_KEYS_PATH = '/home/yanzhe/gch-prod-dwh01/utils/json-keys/gch-prod-dwh01-data-pipeline.json
 SERVICE_ACCOUNT = f'{JSON_KEYS_PATH}'
 
 # set up credentials for BQ and Drive to query data
