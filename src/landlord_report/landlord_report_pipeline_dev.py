@@ -27,19 +27,83 @@ SHARED_DRIVE_ID = '0AJjN4b49gRCrUk9PVA'
 
 SLICE_BY_ROWS = 1000000 - 1
 
+def get_folder_name():
+	month_num = get_month(False)
+	month_name = get_month(True)
+	year = get_year()
+	folder_name = f'{year}{month_num} - {month_name}'
+	return folder_name
+
+def landlord_bq_to_df(bq_client, sql_script:str, log=False, ignore_error=False):
+	with open(sql_script, 'r') as cur_script:
+		if log:
+			print(f'\n\n{datetime.now()} Query: {sql_script}')
+
+		try:
+			query = ' '.join([line for line in cur_script])
+			date = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+			query = query.replace("cur_date", f"'{date}'")
+			results_df = bq_client.query(query).to_dataframe()
+		except Exception:
+			print(f'{sql_script} query failed.')
+			if ignore_error:
+				results_df = pd.DataFrame() 
+				return results_df
+			raise
+
+		if log:
+			print(f'Results: {results_df.shape}')
+
+	return (results_df)
+
+def landlord_bq_to_csv(bq_client,
+			  sql_script:str,
+			  slice_row:int,
+			  outfile_name:str,
+			  log=False,
+			  ignore_error=False
+) -> tuple:
+
+	if not 0 < slice_row <= 1000000:
+		raise ValueError('Invalid slice length.')
+
+	results_df = landlord_bq_to_df(bq_client, sql_script, log, ignore_error)
+	csv_buffers = []
+
+	for cur_row in range(0, len(results_df), slice_row):
+		file_ver = cur_row // slice_row + 1
+		subset_df = results_df.iloc[cur_row:cur_row + slice_row]
+		cur_outfile_name = outfile_name.replace('.csv', f'_{file_ver}.csv')
+
+		print(f'{datetime.now()} creating CSV binary for {cur_outfile_name}')
+
+		cur_buffer = BytesIO()
+		subset_df.to_csv(cur_buffer, index=False)
+		cur_buffer.seek(0)
+
+		csv_buffers.append((cur_outfile_name, cur_buffer))
+
+		print(f'{datetime.now()} {cur_outfile_name} CSV binary created')
+
+	return csv_buffers
+
 def landlord_report_pipeline_dev():
-	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
-	print(sql_scripts)
 	service = build_drive_service(SERVICE_ACCOUNT)
+	folder_name = get_folder_name()
+	sql_scripts = file_type_in_dir(SQL_SCRIPTS_PATH, '.sql')
+	date = (datetime.today() - timedelta(days=1)).strftime("%Y%m%d")
 
 	for cur_script in sql_scripts:
-		outfile_name = gen_file_name('', cur_script, '.sql', '.csv', '')
-		csv_files = bq_to_csv(bq_client, f'{SQL_SCRIPTS_PATH}/{cur_script}', SLICE_BY_ROWS, outfile_name, log=True)
+		outfile_name = gen_file_name('', cur_script, '.sql', '.csv', date)
+		csv_files = landlord_bq_to_csv(bq_client, f'{SQL_SCRIPTS_PATH}/{cur_script}', SLICE_BY_ROWS, outfile_name, log=True)
+
+		folder_data = drive_autodetect_folders(service, PARENT_FOLDER_ID, folder_name, create_folder=True)
+		folder_id = folder_data['id']
 
 		local_csv_to_gdrive(
 			service=service,
 			main_drive_id=SHARED_DRIVE_ID,
-			dst_folder_id=PARENT_FOLDER_ID,
+			dst_folder_id=folder_id,
 			csv_files=csv_files,
 			update_dup=True,
 			log=False
