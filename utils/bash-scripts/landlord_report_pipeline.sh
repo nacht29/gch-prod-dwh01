@@ -36,12 +36,12 @@ fi
 # Run py script
 echo "executing landlord_report_pipeline_dev"
 
-/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py .py > /tmp/script_output.log 2>&1
+/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py> /tmp/script_output.log 2>&1
 
 if [ $? -ne 0 ]; then
 	echo "landlord_report_pipeline_dev failed. Sending mail alert..."
 
 	ERROR_TRACEBACK=$(cat /tmp/script_output.log)
 
-	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report_pipeline/alert.py "$ERROR_TRACEBACK"
+	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/alert.py "$ERROR_TRACEBACK"
 fi
