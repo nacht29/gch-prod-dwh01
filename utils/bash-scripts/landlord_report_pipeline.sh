@@ -17,7 +17,7 @@ sudo /usr/bin/timedatectl set-timezone "Asia/Singapore"
 
 # Create Python VENV
 if [ ! -d "/home/yanzhe/myvenv" ]; then
-    /usr/bin/python3 -m venv /home/yanzhe/myvenv
+	/usr/bin/python3 -m venv /home/yanzhe/myvenv
 fi
 
 # Upgrade pip
@@ -25,15 +25,21 @@ fi
 
 # Install Python packages in VENV
 /home/yanzhe/myvenv/bin/python -m pip install --upgrade \
-    google-cloud-bigquery google-api-python-client google-auth \
-    google-auth-oauthlib google-auth-httplib2 google-cloud-storage \
-    pydrive db-dtypes xlrd pandas openpyxl xlsxwriter\
-    google-cloud-bigquery-storage
-    #apache-airflow apache-airflow[gcp]
+	google-cloud-bigquery google-api-python-client google-auth \
+	google-auth-oauthlib google-auth-httplib2 google-cloud-storage \
+	pydrive db-dtypes xlrd pandas openpyxl xlsxwriter\
+	google-cloud-bigquery-storage
+	#apache-airflow apache-airflow[gcp]
 
 /home/yanzhe/myvenv/bin/python -m pip install --index-url https://test.pypi.org/simple/ --no-deps pygcp==1.1.0
 
 # Run py script
 echo "executing exapp_pipeline"
 
-/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py
+/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py .py > /tmp/script_output.log 2>&1
+
+if [ $? -ne 0 ]; then
+	ERROR_TRACEBACK=$(cat /tmp/script_output.log)
+
+	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report_pipeline/alert.py "$ERROR_TRACEBACK"
+fi
