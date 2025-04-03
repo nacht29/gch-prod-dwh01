@@ -15,7 +15,7 @@ bq_client = bq.Client(credentials=credentials, project=credentials.project_id)
 bucket_client = storage.Client(credentials=credentials, project=credentials.project_id)
 
 # SQL_SCRIPTS_PATH = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/sql-scripts/landlord_report'
-SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/landlord'
+SQL_SCRIPTS_PATH = '/home/yanzhe/gch-prod-dwh01/sql-scripts/landlord_report'
 
 # PY_LOGS_DIR = '/mnt/c/Users/Asus/Desktop/cloud-space-workspace/giant/gch-prod-dwh01/src/landlord_report/py_log'
 PY_LOGS_DIR = '/home/yanzhe/gch-prod-dwh01/src/landlord_report/py_log'
