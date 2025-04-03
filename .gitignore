@@ -184,3 +184,11 @@ test*
 
 myvenv/*
 myvenv
+
+pylog/
+outfiles/
+outfile/
+
+*.txt
+*.csv
+*.xlsx
