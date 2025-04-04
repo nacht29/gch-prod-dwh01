@@ -106,7 +106,7 @@ def landlord_report_pipeline_dev():
 			dst_folder_id=folder_id,
 			csv_files=csv_files,
 			update_dup=True,
-			log=Fals
+			log=False
 		)
 
 if __name__ == '__main__':
