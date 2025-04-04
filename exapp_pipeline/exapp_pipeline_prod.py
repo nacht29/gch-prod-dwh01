@@ -355,11 +355,8 @@ def exapp_pipeline_prod():
 					excel_buffer.close()
 					
 		except Exception as error:
-			export_logs()
+			print("pipeline_error: landlord_report_pipeline_dev failed")
 			raise
-
-	export_logs()
-
 
 if __name__ == '__main__':
 	exapp_pipeline_prod()
