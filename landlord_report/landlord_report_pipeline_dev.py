@@ -106,8 +106,12 @@ def landlord_report_pipeline_dev():
 			dst_folder_id=folder_id,
 			csv_files=csv_files,
 			update_dup=True,
-			log=False
+			log=Fals
 		)
 
 if __name__ == '__main__':
-	landlord_report_pipeline_dev()
+	try:
+		landlord_report_pipeline_dev()
+	except Exception:
+		print("pipeline_error: landlord_report_pipeline_dev failed")
+		raise
