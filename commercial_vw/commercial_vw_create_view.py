@@ -73,4 +73,4 @@ with open('views.txt', 'r') as views_list:
 			case view_name if view_name.endswith('week'):
 				day_table(f'{view_name}_tmp', src_dataset='commercial', src_table='possales_consign_tmp', dept=view_name[4])
 			case view_name if view_name.endswith('month'):
-				month_table(f'{view_name}_tmp', src_dataset='', src_table='', dept=view_name[4])
+				month_table(f'{view_name}_tmp', src_dataset='commercial', src_table='', dept=view_name[4])
