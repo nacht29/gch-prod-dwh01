@@ -38,10 +38,10 @@ echo "executing exapp_pipeline"
 
 /home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline/exapp_pipeline_prod.py > /var/log/exapp_pipeline.log 2>&1
 
-if [ $? -ne 0 ]; then
-	echo "exapp_pipeline_prod failed! Sending mail alert..."
+# if [ $? -ne 0 ]; then
+# 	echo "exapp_pipeline_prod failed! Sending mail alert..."
 
-	ERROR_TRACEBACK=$(cat /var/log/exapp_pipeline.log)
+# 	ERROR_TRACEBACK=$(cat /var/log/exapp_pipeline.log)
 
-	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline/alert.py "$ERROR_TRACEBACK"
-fi
+# 	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/exapp_pipeline/alert.py "$ERROR_TRACEBACK"
+# fi

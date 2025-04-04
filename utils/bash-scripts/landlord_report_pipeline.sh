@@ -38,10 +38,10 @@ echo "executing landlord_report_pipeline_dev"
 
 /home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/landlord_report_pipeline_dev.py> /var/log/landlord_report_pipeline.log 2>&1
 
-if [ $? -ne 0 ]; then
-	echo "landlord_report_pipeline_dev failed. Sending mail alert..."
+# if [ $? -ne 0 ]; then
+# 	echo "landlord_report_pipeline_dev failed. Sending mail alert..."
 
-	ERROR_TRACEBACK=$(cat /var/log/landlord_report_pipeline.log)
+# 	ERROR_TRACEBACK=$(cat /var/log/landlord_report_pipeline.log)
 
-	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/alert.py "$ERROR_TRACEBACK"
-fi
+# 	/home/yanzhe/myvenv/bin/python /home/yanzhe/gch-prod-dwh01/landlord_report/alert.py "$ERROR_TRACEBACK"
+# fi
