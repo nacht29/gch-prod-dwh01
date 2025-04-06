@@ -31,7 +31,7 @@ fi
 	google-cloud-bigquery-storage
 	#apache-airflow apache-airflow[gcp]
 
-/home/yanzhe/myvenv/bin/python -m pip install --index-url https://test.pypi.org/simple/ --no-deps pygcp==1.1.0
+/home/yanzhe/myvenv/bin/python -m pip install --index-url https://test.pypi.org/simple/ --no-deps pygcp==1.1.1
 
 # Run py script
 echo "executing landlord_report_pipeline_dev"
