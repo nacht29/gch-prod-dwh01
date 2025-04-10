@@ -55,16 +55,8 @@ DATE_CALC AS(
 	) AS Wk,
 
 	CONCAT(
-		CASE
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Sun' THEN '07'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Mon' THEN '01'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Tue' THEN '02'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Wed' THEN '03'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Thu' THEN '04'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Fri' THEN '05'
-			WHEN FORMAT_DATE('%a', PCD.BizDate) = 'Sat' THEN '06'
-		END,
-		'.',
+		LPAD(CAST(MOD(EXTRACT(DAYOFWEEK FROM PCD.BizDate) + 5, 7) + 1 AS STRING), 2, '0'), 
+		'.', 
 		FORMAT_DATE('%a', PCD.BizDate)
 	) AS `Calendar Day Week`
 	
@@ -95,16 +87,8 @@ DATE_CALC2 AS(
 	) AS Wk,
 
 	CONCAT(
-		CASE
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Sun' THEN '07'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Mon' THEN '01'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Tue' THEN '02'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Wed' THEN '03'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Thu' THEN '04'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Fri' THEN '05'
-			WHEN FORMAT_DATE('%a', AGG_GR.YearMonthDay) = 'Sat' THEN '06'
-		END,
-		'.',
+		LPAD(CAST(MOD(EXTRACT(DAYOFWEEK FROM AGG_GR.YearMonthDay) + 5, 7) + 1 AS STRING), 2, '0'), 
+		'.', 
 		FORMAT_DATE('%a', AGG_GR.YearMonthDay)
 	) AS `Calendar Day Week`
 
@@ -135,16 +119,8 @@ DATE_CALC3 AS(
 	) AS Wk,
 
 	CONCAT(
-		CASE
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Sun' THEN '07'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Mon' THEN '01'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Tue' THEN '02'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Wed' THEN '03'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Thu' THEN '04'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Fri' THEN '05'
-			WHEN FORMAT_DATE('%a', SRP_PS.Date) = 'Sat' THEN '06'
-		END,
-		'.',
+		LPAD(CAST(MOD(EXTRACT(DAYOFWEEK FROM SRP_PS.Date) + 5, 7) + 1 AS STRING), 2, '0'), 
+		'.', 
 		FORMAT_DATE('%a', SRP_PS.Date)
 	) AS `Calendar Day Week`
 
